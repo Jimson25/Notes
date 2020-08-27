@@ -13,8 +13,8 @@
             <!-- 添加/修改parent标签 -->
             <parent>
                 <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starters</artifactId>
-                <version>2.2.5.RELEASE</version>
+                <artifactId>spring-boot-starter-parent</artifactId>
+                <version>2.3.2.RELEASE</version>
                 <relativePath/> <!-- lookup parent from repository -->
             </parent>
 
@@ -30,35 +30,28 @@
 
             <dependencies>
                 <!-- 添加一些依赖 -->
-                <dependency>
-                    <groupId>org.aspectj</groupId>
-                    <artifactId>aspectjweaver</artifactId>
-                    <version>1.8.13</version>
-                </dependency>
-                <dependency>
-                    <groupId>org.projectlombok</groupId>
-                    <artifactId>lombok</artifactId>
-                    <version>1.18.12</version>
-                    <scope>provided</scope>
-                </dependency>
-                <!-- 获取用户访问设备（手机，操作系统等）信息模块-->
-                <dependency>
-                    <groupId>eu.bitwalker</groupId>
-                    <artifactId>UserAgentUtils</artifactId>
-                    <version>1.21</version>
-                </dependency>
+          
 
 
-                <!-- 用于使用自定义配置文件的依赖,通过这个依赖可以把配置文件编译为xxx-metadata.json,输入配置时会有提示 -->
+                <!-- 
+                    用于使用自定义配置文件的依赖,
+                    通过这个依赖可以把配置文件编译为xxx-metadata.json,
+                    在修改项目配置文件时会有代码提示
+                 -->
                 <dependency>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-configuration-processor</artifactId>
-                    <version>2.3.2.RELEASE</version>
                     <optional>true</optional>
                 </dependency>
 
+                <!-- starter自动配置依赖,这是starter的核心依赖 -->
+                <dependency>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-autoconfigure</artifactId>
+                </dependency>
 
-                <!-- 测试用的 -->
+
+                <!-- 测试用的,实际开发可以不要 -->
                 <dependency>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-starter-web</artifactId>
