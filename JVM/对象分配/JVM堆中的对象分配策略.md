@@ -39,6 +39,3 @@
     - -XX:DoEscapeAnalysis  用于显式开启逃逸分析
     - -XX:PrintEscapeAnalysis   用于查看逃逸分析结果 
     - -XX:EliminateAllocations  开启标量替换，允许将对象打散分配到栈上。
-
-
-        ![标量替换后程序执行时间](./img/标量替换后程序执行时间.jpg)
