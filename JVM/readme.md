@@ -24,3 +24,5 @@
     - -XX:EliminateAllocations  开启标量替换，允许将对象打散分配到栈上。
 
     - -server 设置虚拟机以server模式运行
+
+    - -XX:StringTableSize 设置字符串常量池的大小
