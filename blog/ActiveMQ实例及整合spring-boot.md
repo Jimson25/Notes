@@ -252,6 +252,129 @@
      */
      ```
 
-     
+
+   
+
+   #### 三、整合spring-boot
+
+   1. 创建spring-boot项目并导入依赖
+
+      创建一个spring-boot项目，并在pom文件中引入`web-starter`及`activemq-starter`
+
+      ```xml
+      <dependency>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-starter-web</artifactId>
+      </dependency>
+      <dependency>
+          <artifactId>spring-boot-starter-activemq</artifactId>
+          <groupId>org.springframework.boot</groupId>
+      </dependency>
+      ```
+
+      
+
+   2. 修改配置文件
+
+      修改配置文件为`.yml` 并添加如下配置：
+
+      ```yaml
+      server:
+        port: 7002
+      
+      spring:
+        activemq:
+          in-memory: false
+          user: admin
+          password: admin
+          broker-url: tcp://192.168.1.172:61616
+          pool:
+            enabled: false
+          packages:
+            trust-all: true
+      
+      ```
+
+      
+
+   3. 创建配置类
+
+      在启动类同级目录下创建文件 `config.ActiveMQConfig.java` 代码如下：
+
+      ```java
+      @Configuration
+      public class ActiveMQConfig {
+          @Bean
+          public Queue queue() {
+              return new ActiveMQQueue("springboot.queue");
+          }
+      
+          @Bean
+          public Topic topic() {
+              return new ActiveMQTopic("springboot.topic");
+          }
+      
+          @Bean
+          public JmsListenerContainerFactory jmsListenerContainerFactory(
+                  @Qualifier("jmsConnectionFactory") ConnectionFactory connectionFactory) {
+              DefaultJmsListenerContainerFactory factory = new DefaultJmsListenerContainerFactory();
+              factory.setConnectionFactory(connectionFactory);
+              //配置为发布/订阅模式 这里设置后就只能发送topic类型的数据
+              factory.setPubSubDomain(true);
+              return factory;
+          }
+      }
+      ```
+
+      
+
+   4. 创建生产者及消费者
+
+      这里我们使用一个controller来控制生产者，当收到`/activemq/topic`请求后会产生一条消息到MQ
+
+      ```java
+      @RestController
+      @RequestMapping("/activemq")
+      public class ActiveMQProducer {
+          @Autowired
+          private Queue queue;
+          @Autowired
+          private Topic topic;
+          @Autowired
+          private JmsMessagingTemplate jmsTemplate;
+      
+          @GetMapping("/queue")
+          public void sendQueue(String msg) {
+              jmsTemplate.convertAndSend(queue, msg);
+          }
+      
+          @GetMapping("/topic")
+          public void sendTopic(String msg){
+              jmsTemplate.convertAndSend(topic,msg);
+          }
+      }
+      ```
+
+      创建一个消费者，分别接受queue和topic消息
+
+      ```java
+      //这里的destination对应的是我们配置的队列名
+      @Component
+      public class ActiveMQConsumer {
+          
+          @JmsListener(destination = "springboot.queue")
+          public void queueListen(String msg) {
+              System.out.println("接收到queue消息:===> " + msg);
+          }
+      
+          @JmsListener(destination = "springboot.topic", containerFactory = "jmsListenerContainerFactory")
+          public void topicListen(String msg) {
+              System.out.println("接收到topic消息:===> " + msg);
+          }
+      
+      }
+      ```
+
+      
 
    
