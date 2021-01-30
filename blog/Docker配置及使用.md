@@ -55,7 +55,7 @@ docker包含三个基本概念，分别为镜像(Image)、容器(Container)、�
 - 运行 `docker run -it ubuntu /bin/bash` 使用镜像启动一个容器
   - **docker：** Docker 的二进制执行文件。
 
-  - **run：**与前面的 docker 组合来运行一个容器。
+  - **run：** 与前面的 docker 组合来运行一个容器。
 
   - __-i：__ 允许用户对容器内的标准输入进行交互（可以敲命令）
 
@@ -221,12 +221,12 @@ NAMES: 自动分配的容器名称。
 
 - 我们可以通过 [Docker Hub]( https://hub.docker.com/) 来查找我们需要的docker镜像，类似于Maven中央仓库。同时也可以使用 `docker search xxx`来搜索我们需要的镜像。如我们需要下载rabbitmq镜像，可以执行 `docker search rabbitmq` ，返回结果如下，其中`OFFICIAL`表示是否为官方镜像
 
-	```
+	```shell
 	[root@aosong docker]# docker search rabbitmq
 	NAME                                        DESCRIPTION                                     STARS     OFFICIAL   AUTOMATED
 	rabbitmq                                    RabbitMQ is an open source multi-protocol me…   3546      [OK]       
 	bitnami/rabbitmq                            Bitnami Docker Image for RabbitMQ               57                   [OK]
-tutum/rabbitmq                              Base docker image to run a RabbitMQ server      22                   
+	tutum/rabbitmq                              Base docker image to run a RabbitMQ server      22                   
 	......
 	```
 
