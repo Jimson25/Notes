@@ -134,6 +134,7 @@ public class Consumer {
 
         CancelCallback cancel = System.out::println;
 
+        //这才开启一个消费者，连接到 ‘hello-world’这个队列
         channel.basicConsume("hello-world", true, callback, cancel);
     }
 
@@ -157,7 +158,7 @@ consumerTag: amq.ctag-3iCIlLoy0iD8urRsuTswMA == 收到消息： 这是第6条消
 
 #### A. 模式说明
 
-工作模式类似于简单模式，只是存在多个消费者从一个中间件中获取消息，并且可以配置负载均衡、分发规则、消息持久化等
+工作模式类似于简单模式，只是存在多个消费者从一个中间件中获取消息，并且可以配置负载均衡、分发规则、消息持久化等。在这一模式下，生产者使用默认的交换机，然后配置一个路由规则`routing key`l来指明数据流向哪个队列。注意：这里的队列可以在生产者中声明，也可以在消费者中声明。如果在生产者中声明队列，那么生产者往中间件中发送的消息会通过`routing key`放到队列中，如果是在消费者中声明队列，那么在队列被创建之前生产者发送到交换机的消息都会被丢弃（先启动生产者再启动消费者），如果先启动消费者创建队列再启动生产者往交换机中发给数据，那么数据会根据交换机的`routing key`保存到对应的队列中。
 
 ![工作](.\doc\image\rabbitmq\工作模式抽象图.png)
 
@@ -269,6 +270,8 @@ public class Consumer {
             channel.basicAck(message.getEnvelope().getDeliveryTag(), false);
         };
         CancelCallback cancel = System.out::println;
+        
+        //这才开启一个消费者，连接到 ‘Operating mode’这个队列
         //把自动消息确认关闭掉 autoAck = false表示关掉自动确认
         channel.basicConsume("Operating mode", false, callback, cancel);
     }
@@ -297,7 +300,7 @@ rabbitmq会一次把多条消息发送给一个消费者，这可能会造成有
 
 #### A. 模式说明
 
-前面我们使用工作模式实现了消息分发，在上面的例子中，一条消息值发送给一个进程，而如果我们想要把一个消息发送给多个消费者，就需要用到发布订阅模式。在发布订阅模式中，每一个消费者都能完整的接收到它启动后消息队列发送的消息。
+前面我们使用工作模式实现了消息分发，在上面的例子中，一条消息值发送给一个进程，而如果我们想要把一个消息发送给多个消费者，就需要用到发布订阅模式。在发布订阅模式中，每一个消费者都能完整的接收到它启动后消息队列发送的消息。在发布订阅模式中，生产者会声明一个交换机并制定名字和类型`channel.exchangeDeclare("logs", "fanout");`然后往这个交换机里面放数据，每一个消费者都会声明一个自己的队列`String queue = channel.queueDeclare().getQueue();`然后将队列绑定到交换机上`channel.queueBind(queue, "logs", "");` 通过这种方式再获取交换机中的数据。
 
 #### B.代码实现
 
@@ -335,10 +338,6 @@ public class Producer {
         channel.exchangeDeclare("logs", "fanout");
 
         for (int i = 0; ; i++) {
-            String msg = "这是第" + i + "条消息";
-            if (i == 50) {
-                msg = "Q";
-            }
             //发送消息
             channel.basicPublish("logs", "", null, msg.getBytes(StandardCharsets.UTF_8));
             System.out.println("第" + i + "条消息已发送");
@@ -365,10 +364,10 @@ public class Consumer {
         Channel channel = connection.createChannel();
 
         //Actively declare a non-autodelete, non-durable exchange with no extra arguments
-        //主动声明一个不自动删除、不持久化的五额外参数的交换机
+        //主动声明一个不自动删除、不持久化的无额外参数的交换机
         //logs：交换机名称
         //fanout：交换机类型
-        channel.exchangeDeclare("logs", "fanout");
+        // channel.exchangeDeclare("logs", "fanout");
 
         //Actively declare a server-named exclusive, autodelete, non-durable queue.
         //主动声明一个独占的、自动删除的、不持久化的队列，获取队列名称
@@ -383,6 +382,8 @@ public class Consumer {
         //消费者取消时的回调对象
         CancelCallback cancel = consumerTag -> {
         };
+        
+        //这才开启一个消费者，连接到queue队列
         channel.basicConsume(queue, true, callback, cancel);
     }
 }
@@ -416,6 +417,16 @@ copy:
 
 
 ### 4. 路由模式
+
+#### A. 模式说明
+
+在前面我们使用Fanout交换机实现了发布订阅模式，在发布订阅模式下，一个生产者推送给交换机的数据可以被转发给多个消费者，每个消费者接收的消息都是完整的。但是有的时候可能某个消费者只需要生产者发送的部分消息，比如说在一个日志系统中，可能存在多个消费者分别用来处理不同级别的日志消息，那么此时我们需要让不同的消费者只接受它需要的日志级别。概念图如下：![](./doc/image/rabbitmq/路由模式抽象.png)
+
+在路由模式中，我们需要用到类型为`direct`的直连交换机 ``
+
+#### B. 代码实现
+
+
 
 ### 5. 主题模式
 
