@@ -300,7 +300,7 @@ rabbitmq会一次把多条消息发送给一个消费者，这可能会造成有
 
 #### A. 模式说明
 
-前面我们使用工作模式实现了消息分发，在上面的例子中，一条消息值发送给一个进程，而如果我们想要把一个消息发送给多个消费者，就需要用到发布订阅模式。在发布订阅模式中，每一个消费者都能完整的接收到它启动后消息队列发送的消息。在发布订阅模式中，生产者会声明一个交换机并制定名字和类型`channel.exchangeDeclare("logs", "fanout");`然后往这个交换机里面放数据，每一个消费者都会声明一个自己的队列`String queue = channel.queueDeclare().getQueue();`然后将队列绑定到交换机上`channel.queueBind(queue, "logs", "");` 通过这种方式再获取交换机中的数据。
+前面我们使用工作模式实现了消息分发，在上面的例子中，一条消息值发送给一个进程，而如果我们想要把一个消息发送给多个消费者，就需要用到发布订阅模式。在发布订阅模式中，每一个消费者都能完整的接收到它启动后消息队列发送的消息。在发布订阅模式中，生产者会声明一个交换机并制定名字和类型`channel.exchangeDeclare("logs", "fanout");`然后往这个交换机里面放数据，每一个消费者都会声明一个自己的队列`String queue = channel.queueDeclare().getQueue();`然后将队列绑定到交换机上`channel.queueBind(queue, "logs", "");` 通过这种方式再获取交换机中的数据。![](./doc/image/rabbitmq/发布订阅模式.png)![](./doc/image/rabbitmq/发布订阅模式抽象图.png)
 
 #### B.代码实现
 
@@ -422,13 +422,113 @@ copy:
 
 在前面我们使用Fanout交换机实现了发布订阅模式，在发布订阅模式下，一个生产者推送给交换机的数据可以被转发给多个消费者，每个消费者接收的消息都是完整的。但是有的时候可能某个消费者只需要生产者发送的部分消息，比如说在一个日志系统中，可能存在多个消费者分别用来处理不同级别的日志消息，那么此时我们需要让不同的消费者只接受它需要的日志级别。概念图如下：![](./doc/image/rabbitmq/路由模式抽象.png)
 
-在路由模式中，我们需要用到类型为`direct`的直连交换机 ``
+在路由模式中，我们需要用到类型为`direct`的直连交换机 `channel.exchangeDeclare("logs_direct", BuiltinExchangeType.DIRECT);`然后根据不同的日志级别为每一条消息设置不同的`routingkey`。再在消费者中声明一个队列并获取队列名`String queue = channel.queueDeclare().getQueue();`，将该队列绑定到生产者中声明的直连交换机上，然后根据消费者业务类型设置不同的`routingkey`。完整代码为：`channel.queueBind(queue, "logs_direct", "error");`。
 
 #### B. 代码实现
+
+##### 公共类
+
+```java
+public class CommonField {
+    private static final String RABBIT_MQ_HOST = "bailegedu.com";
+    private static final Integer RABBIT_MQ_PORT = 5672;
+    private static final String RABBIT_MQ_USERNAME = "admin";
+    private static final String RABBIT_MQ_PASSWORD = "admin";
+
+    public static Channel getChannel() throws IOException, TimeoutException {
+        ConnectionFactory factory = new ConnectionFactory();
+        factory.setHost(CommonField.RABBIT_MQ_HOST);
+        factory.setPort(CommonField.RABBIT_MQ_PORT);
+        factory.setUsername(CommonField.RABBIT_MQ_USERNAME);
+        factory.setPassword(CommonField.RABBIT_MQ_PASSWORD);
+        Connection connection = factory.newConnection();
+        return connection.createChannel();
+    }
+}
+```
+
+##### 生产者
+
+```java
+public class Producer {
+    public static void main(String[] args) throws IOException, TimeoutException, InterruptedException {
+        Channel channel = CommonField.getChannel();
+        //声明一个直连交换机，名称为logs_direct
+        channel.exchangeDeclare("logs_direct", BuiltinExchangeType.DIRECT);
+
+        String[] logLevel = {"info", "warning", "error"};
+
+        for (int i = 0; ; i++) {
+            int index = new Random().nextInt(3);
+            String level = logLevel[index];
+            String msg = "No. : " + i + " === log-level : " + level;
+            //根据日志信息级别为其设置对应的routingkey
+            channel.basicPublish("logs_direct", level, null, msg.getBytes(StandardCharsets.UTF_8));
+            System.out.println("第 " + i + " 条消息发送成功 ==>" + msg);
+            Thread.sleep(1000);
+        }
+    }
+}
+```
+
+##### 消费者1
+
+```java
+public class ErrorConsumer {
+    public static void main(String[] args) throws IOException, TimeoutException {
+        Channel channel = CommonField.getChannel();
+        //声明一个随机队列并获取队列名
+        String queue = channel.queueDeclare().getQueue();
+        //将队列绑定到交换机上并设置routingKey为error
+        channel.queueBind(queue, "logs_direct", "error");
+        //接收消息
+        DeliverCallback callback = (consumerTag, message) -> {
+            String msg = new String(message.getBody(), StandardCharsets.UTF_8);
+            String routingKey = message.getEnvelope().getRoutingKey();
+            System.out.println("收到: " + routingKey + " 消息: " + msg);
+        };
+
+        CancelCallback cancelCallback = consumerTag -> System.out.println("consumerTag: " + consumerTag);
+        // 根据上面的信息创建一个消费者
+        channel.basicConsume(queue, true, callback, cancelCallback);
+    }
+}
+```
+
+##### 消费者2
+
+```java
+public class OtherConsumer {
+    public static void main(String[] args) throws IOException, TimeoutException {
+        Channel channel = CommonField.getChannel();
+        //声明一个队列并获取队列名
+        String queue = channel.queueDeclare().getQueue();
+        //将队列绑定到交换机并根据这个队列业务类型接收多个级别的日志
+        channel.queueBind(queue, "logs_direct", "info");
+        channel.queueBind(queue, "logs_direct", "warning");
+
+        DeliverCallback callback = (consumerTag, message) -> {
+            String msg = new String(message.getBody(), StandardCharsets.UTF_8);
+            String routingKey = message.getEnvelope().getRoutingKey();
+            System.out.println("收到: " + routingKey + " 消息: " + msg);
+        };
+        CancelCallback cancelCallback = consumerTag -> System.out.println("consumerTag: " + consumerTag);
+        channel.basicConsume(queue, true, callback, cancelCallback);
+    }
+}
+```
 
 
 
 ### 5. 主题模式
+
+#### A. 模式说明
+
+在前面路由模式中，我们实现了让不同的消费者根据其设置的日志级别消费对应的消息。但是在实际中，我们可能还要根据日志源和级别一起决定对应的消费者，这里我们就需要用到主题模式。
+
+在主题模式中，使用了新的交换机Topic。这种交换机的routingkey必须是有`.`分隔开的多个单词，routingkey可以有多个单词，最多255个字节，类似于`oppo.blue.small`。
+
+#### B. 代码实现
 
 ### 6. RPC模式
 
