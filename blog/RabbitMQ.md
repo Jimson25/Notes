@@ -422,6 +422,8 @@ copy:
 
 在前面我们使用Fanout交换机实现了发布订阅模式，在发布订阅模式下，一个生产者推送给交换机的数据可以被转发给多个消费者，每个消费者接收的消息都是完整的。但是有的时候可能某个消费者只需要生产者发送的部分消息，比如说在一个日志系统中，可能存在多个消费者分别用来处理不同级别的日志消息，那么此时我们需要让不同的消费者只接受它需要的日志级别。概念图如下：![](./doc/image/rabbitmq/路由模式抽象.png)
 
+![](./doc/image/rabbitmq/路由模式.png)
+
 在路由模式中，我们需要用到类型为`direct`的直连交换机 `channel.exchangeDeclare("logs_direct", BuiltinExchangeType.DIRECT);`然后根据不同的日志级别为每一条消息设置不同的`routingkey`。再在消费者中声明一个队列并获取队列名`String queue = channel.queueDeclare().getQueue();`，将该队列绑定到生产者中声明的直连交换机上，然后根据消费者业务类型设置不同的`routingkey`。完整代码为：`channel.queueBind(queue, "logs_direct", "error");`。
 
 #### B. 代码实现
@@ -526,11 +528,226 @@ public class OtherConsumer {
 
 在前面路由模式中，我们实现了让不同的消费者根据其设置的日志级别消费对应的消息。但是在实际中，我们可能还要根据日志源和级别一起决定对应的消费者，这里我们就需要用到主题模式。
 
-在主题模式中，使用了新的交换机Topic。这种交换机的routingkey必须是有`.`分隔开的多个单词，routingkey可以有多个单词，最多255个字节，类似于`oppo.blue.small`。
+在主题模式中，使用了新的交换机Topic。这种交换机的routingkey必须是有`.`分隔开的多个单词，routingkey可以有多个单词，最多255个字节，类似于`oppo.blue.small`。同样的，我们在创建消费者时绑定的routingKey也必须采用相同的形式，如`channel.queueBind(queue, "phone_exchange", "oppo.blue.big");`。但是在这里有时候我们可能只需要判断其中的一个条件，比如说在最后一个参数`大小`里面，我们只需要关注其值为`big`的消息而不管前面两个参数值是什么，那么这时候就可以使用通配符表示，写法为`*.*.big`。`'*' 可以匹配单个单词 '#' 可以匹配零个或多个单词`，即前面的匹配规则还可以写成`#.big`。我们可以使用一个`#`作为routingKey来接收全部消息。
+
+![](./doc/image/rabbitmq/主题模式示意图.png)
+
+![](./doc/image/rabbitmq/主题模式.png)
+
+
 
 #### B. 代码实现
 
+##### 生产者
+
+```java
+public class Producer {
+    public static void main(String[] args) throws IOException, TimeoutException, InterruptedException {
+        Channel channel = Common.getChannel();
+
+        //声明一个Topic类型的交换机，命名为 car_exchange
+        channel.exchangeDeclare("phone_exchange", BuiltinExchangeType.TOPIC);
+
+        //<品牌>.<颜色>.<大小>
+        String[] brands = {"华为", "小米", "vivo", "oppo"};
+        String[] colors = {"black", "white", "blue"};
+        String[] sizes = {"big", "small"};
+
+        for (int i = 0; ; i++) {
+            int brandIndex = new Random().nextInt(4);
+            int colorIndex = new Random().nextInt(3);
+            int sizeIndex = new Random().nextInt(2);
+
+            String routingKey = brands[brandIndex] + "." + colors[colorIndex] + "." + sizes[sizeIndex];
+            String msg = "index: " + i + " == routing-key:" + routingKey;
+            System.out.println("第 " + i + " 条消息已发送 === " + msg);
+            channel.basicPublish("phone_exchange", routingKey, null, msg.getBytes(StandardCharsets.UTF_8));
+            Thread.sleep(1000);
+        }
+    }
+
+}
+```
+
+##### 消费者
+
+```java
+public class Consumer {
+    public static void main(String[] args) throws IOException, TimeoutException {
+        Channel channel = Common.getChannel();
+
+        //声明一个队列并获取队列名
+        String queue = channel.queueDeclare().getQueue();
+
+        List<String> keys = new ArrayList<>();
+        System.out.println("请输入routingKey，输入`Q`结束:");
+        while (true) {
+            String routingKey = new Scanner(System.in).nextLine();
+            if ("Q".equals(routingKey)) {
+                break;
+            }
+            keys.add(routingKey);
+        }
+		//遍历输入的routingkey并绑定到队列中
+        keys.forEach(key -> {
+            try {
+                channel.queueBind(queue, "phone_exchange", key);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+
+        DeliverCallback deliverCallback = (consumerTag, message) -> {
+            System.out.println("message: " + new String(message.getBody(), StandardCharsets.UTF_8) + " === RoutingKey: " + message.getEnvelope().getRoutingKey());
+        };
+
+        CancelCallback cancelCallback = new CancelCallback() {
+            @Override
+            public void handle(String consumerTag) throws IOException {
+                System.out.println("consumerTag: " + consumerTag);
+            }
+        };
+
+        channel.basicConsume(queue, true, deliverCallback, cancelCallback);
+
+    }
+}
+
+```
+
+
+
 ### 6. RPC模式
+
+#### A. 模式说明
+
+有些时候我们需要调用远程服务器上的一个方法并等待返回结果，这种情况我们称之为远程过程调用，即RPC。
+
+在这一模式下，服务端和客户端都需要发送和接收消息。首先，我们启动一个服务端并创建一个队列`rpc_queue`用于接收来自客户端的消息。然后在客户端中也启动一个队列`replyto_queue`用于接收来自服务端的返回数据。这里我们以客户端请求服务端计算对应的斐波那契数列为例模拟rpc调用，在服务端程序启动后，客户端向服务端发送一个随机id、一个创建好的队列名以及要计算的参数，当服务端接收到对应的参数后，调用本地方法计算出对应结果后，将结果发送到从客户端接收到的队列中并附送上随机id。客户端接收到消息后会收效获取消息中的id，与本地存在的id做对比后判断该消息是不是自己发出去的(id是否相等)，如果是，就向服务端发送一个确认消息回执，否则就不处理这条消息。服务端如果没有收到消息回执，就会重新把这条消息放到队列中给客户端处理。
+
+![](./doc/image/rabbitmq/RPC模式.png)![](./doc/image/rabbitmq/RPC模式示意图.png)
+
+#### B. 代码实现
+
+##### 服务端
+
+```java
+/*
+服务端主要是开启一个生产者服务，然后接收客户端发送的消息并从中获取要计算的数
+客户端发送的消息需要包含三个参数，
+ - 队列名：表示这条消息在服务端处理完后要发送到哪一个队列中
+ - correlationId：表示这条消息的唯一id，这个id在客户端也存在一个，当客户端收到消息后会判断两个id是否相等，如果不相等就舍弃这条消息不做处理
+ 	当服务端发小这条消息没被处理时会重新把它发送到消费者队列给其他客户端处理，如果客户端判断两个id相等，就获取消息结果并向服务端发送一个回复。
+ - msg：表示要发送给服务端处理的数据
+当服务端处理完数据后就把结果放到一个队列中发送给客户端
+*/
+public class Producer {
+    public static void main(String[] args) throws IOException {
+        Channel channel = Common.getChannel();
+        //创建一个队列
+        channel.queueDeclare("rpc_queue", false, false, false, null);
+        //清除队列中的内容
+        channel.queuePurge("rpc_queue");
+        //一次只接收一条消息
+        channel.basicQos(1);
+
+        // 处理客户端发送来的消息
+        DeliverCallback deliverCallback = (consumerTag, message) -> {
+            //处理收到的数据(要求第几个斐波那契数)
+            String msg = new String(message.getBody(), StandardCharsets.UTF_8);
+            int n = Integer.parseInt(msg);
+            //求出第n个斐波那契数
+            int r = fbnq(n);
+            String response = String.valueOf(r);
+
+            //设置发回响应的id, 与请求id一致, 这样客户端可以把该响应与它的请求进行对应
+            BasicProperties replyProps = new BasicProperties.Builder()
+                    .correlationId(message.getProperties().getCorrelationId())
+                    .build();
+
+            /*
+             * 发送响应消息
+             * 1. 默认交换机
+             * 2. 由客户端指定的,用来传递响应消息的队列名
+             * 3. 参数(关联id)
+             * 4. 发回的响应消息
+             */
+            channel.basicPublish("", message.getProperties().getReplyTo(), replyProps, response.getBytes(StandardCharsets.UTF_8));
+            //发送确认消息
+            channel.basicAck(message.getEnvelope().getDeliveryTag(), false);
+        };
+        CancelCallback cancelCallback = consumerTag -> System.out.println("consumerTag: " + consumerTag);
+
+        //消费者开始接收消息, 等待从 rpc_queue接收请求消息, 不自动确认
+        channel.basicConsume("rpc_queue", false, deliverCallback, cancelCallback);
+    }
+
+    protected static int fbnq(int n) {
+        if (n == 1 || n == 2) return 1;
+        return fbnq(n - 1) + fbnq(n - 2);
+    }
+}
+
+```
+
+
+
+##### 客户端
+
+```java
+public class Consumer {
+
+    public String call(String msg) throws Exception {
+
+        Channel channel = Common.getChannel();
+
+        //生成一个随机队列
+        String queue = channel.queueDeclare().getQueue();
+        //生成随机id
+        String uuid = UUID.randomUUID().toString();
+
+        //设置请求和响应的关联id
+        //传递相应数据的queue
+        AMQP.BasicProperties properties = new AMQP.BasicProperties.Builder()
+                .correlationId(uuid)
+                .replyTo(queue)
+                .build();
+        //向队列发送请求
+        channel.basicPublish("", "rpc_queue", properties, msg.getBytes(StandardCharsets.UTF_8));
+
+        //用来保存结果的阻塞集合,取数据时,没有数据会暂停等待
+        BlockingQueue<String> response = new ArrayBlockingQueue<>(1);
+
+        //接收响应数据的回调对象
+        DeliverCallback deliverCallback = (consumerTag, message) -> {
+            //如果响应消息的关联id,与请求的关联id相同,我们来处理这个响应数据
+            if (message.getProperties().getCorrelationId().contentEquals(uuid)) {
+                //把收到的响应数据,放入阻塞集合
+                response.offer(new String(message.getBody(), StandardCharsets.UTF_8));
+            }
+        };
+
+        CancelCallback cancelCallback = consumerTag -> System.out.printf("consumerTag: %s%n", consumerTag);
+
+        //开始从队列接收响应数据
+        channel.basicConsume(queue, true, deliverCallback, cancelCallback);
+        //返回保存在集合中的响应数据
+        return response.take();
+    }
+
+    public static void main(String[] args) throws Exception {
+        Consumer client = new Consumer();
+        while (true) {
+            System.out.print("求第几个斐波那契数:");
+            int n = new Scanner(System.in).nextInt();
+            String r = client.call("" + n);
+            System.out.println(r);
+        }
+    }
+}
+```
+
+
 
 
 
