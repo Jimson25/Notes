@@ -48,7 +48,7 @@ docker包含三个基本概念，分别为镜像(Image)、容器(Container)、�
 
 ##### 1. 拉取镜像
 
-- `运行拉取Ubuntu镜像`docker pull ubuntu`
+- 运行拉取Ubuntu镜像`docker pull ubuntu`
 
 ##### 2. 启动镜像 
 
