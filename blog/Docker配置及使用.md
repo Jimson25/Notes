@@ -249,7 +249,7 @@ NAMES: 自动分配的容器名称。
 ##### 3. 运行rabbitmq镜像
 
 - 运行下载好的镜像 `docker run -dit --name Myrabbitmq -e RABBITMQ_DEFAULT_USER=admin -e RABBITMQ_DEFAULT_PASS=admin -p 15672:15672 -p 5672:5672 rabbitmq:management` 
-  - 以Myrabbitmq为那么运行rabbitmq
+  - 以Myrabbitmq为name运行rabbitmq
   - 配置默认用户名密码为admin
   - 将容器中的5672和15672端口分别映射到宿主机对应端口上
   - 15672是管理界面的端口，5672是服务的端口
