@@ -12,9 +12,9 @@
 
   ```js
   let obj = {
-      "name": "zhangsan",
-      "age": 18,
-      "addr": '北京'
+      name: "zhangsan",
+      age: 18,
+      addr: '北京'
   }
   let arr = ['a', 'b', 'c', 'd'];
   ```
