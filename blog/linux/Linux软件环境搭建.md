@@ -94,7 +94,7 @@
     redis-server redis-6381.conf
     ```
 ## 八、redis主从复制及哨兵机制
-![哨兵机制架构图](./doc/image/哨兵机制.jpg)
+![哨兵机制架构图](../doc/image/哨兵机制.jpg)
 1. 在已完成redis分片的前提下执行,将`shards`文件夹重命名为 `sentinel`
 2. 启动3台redis
     ```shell script
@@ -153,10 +153,10 @@
         - IP端口: 表示真正的主机     
         - 1: 哨兵投票生效的票数  
     - 修改投票时间 113 `sentinel down-after-milliseconds mymaster 10000`
-        
+      
         > 10000: 哨兵投票时间,如果一个节点距离上次有效回复ping命令的时间超过这个时间就会被判定为主观下线
     - 修改重选时间 146行 `sentinel failover-timeout mymaster 20000`
-        
+      
         > 如果在20秒内没有选举成功则重新选举
 9. 启动哨兵 `redis-sentinel sentinel.conf`
 10. 宕机测试,将主节点宕机,等待10秒后查看从节点是否选举出新的主节点,再重新启动主节点看是否成功挂载为从节点.
@@ -257,7 +257,7 @@ make install
     - 进入解压后的目录,执行编译安装 `./make.sh` `./make.sh install`
     - 进入`./conf`目录下将全部文件复制到`/etc/fdfs`
     - 进入`/etc/fdfs`目录下配置`tracker.conf`  
-        
+      
         - 设置软件数据和日志目录  22行 `base_path=/opt/fastdfs`
     - 进入`/etc/fdfs`目录下配置`storage.conf`
         - 设置软件数据和日志目录  41 `base_path=/opt/fastdfs`
@@ -267,16 +267,16 @@ make install
         - 创建目录 `/usr/local/fdfs`
         - 进入`/etc/init.d`目录
         - 编辑`trackerd`脚本    
-            ![trackerd脚本配置](./doc/image/tracker_script1.png)
-            ![trackerd脚本配置](./doc/image/tracker_script2.png)
+            ![trackerd脚本配置](../doc/image/tracker_script1.png)
+            ![trackerd脚本配置](../doc/image/tracker_script2.png)
         - 进入安装目录/usr/local/FastDfs并将相关脚本复制到`fdfs`目录
             ```shell script
             cp restart.sh  /usr/local/fdfs/
             cp stop.sh  /usr/local/fdfs/
             ```
         - 编辑`trackerd`脚本    
-            ![storage脚本配置](./doc/image/storage_script_1.png)
-            ![storage脚本配置](./doc/image/storage_script_2.png)
+            ![storage脚本配置](../doc/image/storage_script_1.png)
+            ![storage脚本配置](../doc/image/storage_script_2.png)
     - 将启动脚本加入Linux服务
         ```shell script
         cd /etc/init.d
@@ -305,13 +305,13 @@ make install
     /usr/bin/fdfs_test /etc/fdfs/client.conf upload /opt/1.jpg
     ```
    - 返回信息
-   ![上传成功结果](./doc/image/fdfs上传测试成功结果.png)
+   ![上传成功结果](../doc/image/fdfs上传测试成功结果.png)
    - 在 `/opt/fastdfs/fdfs_storage/data/00/00`查看上传后的图片
-   ![上传后的图片](./doc/image/fdfs上传后的图片.png)
+   ![上传后的图片](../doc/image/fdfs上传后的图片.png)
 
 5. 问题及修复
     - 在之前上传成功后将虚拟机设置为`挂起`状态,第二天再次测试上传时报错,截图如下
-    ![上传故障截图](./doc/image/故障截图.png)
+    ![上传故障截图](../doc/image/故障截图.png)
     - 切换到数据存储目录查看日志 
         ```shell script
         cd /opt/fastdfs/logs/
@@ -345,7 +345,7 @@ make install
          }
         ```
     - 启动nginx报错如下:
-        
+      
         - `nginx: [emerg] unknown directive "ngx_fastdfs_module" in /usr/local/nginx/conf/nginx.conf:49`
     - 这是因为我们之前安装nginx时没有添加`ngx_fastdfs_module`插件,解决方案如下
         - 进入`nginx`安装目录下的`sbin`执行`./nginx -V` 查看已安装的插件,打印信息如下       
@@ -371,19 +371,19 @@ make install
             /usr/bin/fdfs_test /etc/fdfs/client.conf upload /usr/local/src/fastdfs/1002217.jpg
         ```
         - 在主机调用
-        ![fastdfs调用图片](./doc/image/fdfs图片调用测试.jpg) 
+        ![fastdfs调用图片](../doc/image/fdfs图片调用测试.jpg) 
 
 ## 十二、安装elasticsearch     
 1. 上传并解压
-    
+   
 - 上传`elasticsearch`到`/opt/es`并解压
-    
+  
 2. 编辑配置
     - 编辑es配置文件` vim /opt/es/elasticsearch-6.3.1/config/elasticsearch.yml`
         - 配置es的访问地址 55行 `network.host: 192.168.37.132`
         - 配置es的访问端口 59行 `http.port: 9200`
     - 编辑jvm配置文件 `vim /opt/es/elasticsearch-6.3.1/config/jvm.options`
-        
+      
         - 配置堆内存大小 22行 `-Xms4g` 23行 `-Xmx4g`
     - 修改linux的limits配置文件，设置内存线程和文件 `vim /etc/security/limits.conf` 空白处新增如下代码:
         ```shell script
@@ -396,6 +396,9 @@ make install
         ```shell script
           vm.max_map_count = 655360
           fs.file-max=655360
+        ```
+    ```
+    
     ```
     
 3. 启动 
