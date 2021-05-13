@@ -576,3 +576,224 @@ else
 fi
 ```
 
+##### 逻辑运算符
+
+| 运算符 | 说明       | 举例                                       |
+| :----- | :--------- | :----------------------------------------- |
+| &&     | 逻辑的 AND | [[ $a -lt 100 && $b -gt 100 ]] 返回 false  |
+| \|\|   | 逻辑的 OR  | [[ $a -lt 100 \|\| $b -gt 100 ]] 返回 true |
+
+- 测试代码
+
+```shell
+#!/bin/bash
+
+a=100
+b=20
+
+echo ""
+echo ""
+echo "===== 逻辑运算符 ====="
+# $a < 100 && $b > 100
+if [[ $a -lt 100 && $b -gt 100 ]]
+then
+        echo "返回 true"
+else
+        echo "返回 false"
+fi
+
+echo ""
+# $a < 100 || $b > 100
+if [[ $a -lt 100 || $b -gt 100 ]]
+then
+        echo "返回 true"
+else
+        echo "返回 false"
+fi
+```
+
+
+
+##### 字符串运算符
+
+| 运算符 | 说明                                         | 举例                     |
+| :----- | :------------------------------------------- | :----------------------- |
+| =      | 检测两个字符串是否相等，相等返回 true。      | [ $a = $b ] 返回 false。 |
+| !=     | 检测两个字符串是否不相等，不相等返回 true。  | [ $a != $b ] 返回 true。 |
+| -z     | 检测字符串长度是否为0，为0返回 true。        | [ -z $a ] 返回 false。   |
+| -n     | 检测字符串长度是否不为 0，不为 0 返回 true。 | [ -n "$a" ] 返回 true。  |
+| $      | 检测字符串是否为空，不为空返回 true。        | [ $a ] 返回 true         |
+
+- 测试代码
+
+```shell
+#!/bin/bash
+str1="hello"
+str2="hello"
+str3=""
+
+echo "===== 字符串运算符 ====="
+echo "str1 = $str1"
+echo "str2 = $str2"
+echo "str3 = $str3"
+
+echo ""
+# 检测两个字符串是否相等
+if [ $str1 = $str2 ]
+then
+        echo "$str1 = $str2 : str1 等于 str2"
+else
+        echo "$str1 = $str2 : str1 不等于 str2"
+fi
+
+
+echo ""
+# 检测两个字符串是否不等
+if [ $str1 != $str2 ]
+then
+        echo "$str1 != $str2 : str1 不等于 str2"
+else
+        echo "$str1 != $str2 : str1 等于 str2"
+fi
+
+
+echo ""
+# 检测字符串长度是否为0 -z
+if [ -z $str3 ]
+then
+        echo "-z $str3 : str3 长度为0"
+else
+        echo "-z $str3 : str3 长度不为0"
+fi
+echo ""
+# 检测字符串长度是否不为0 -n
+if [ -n $str3 ]
+then
+        echo "-n $str3 : str3 长度不为0"
+else
+        echo "-n $str3 : str3 长度为0"
+fi
+
+echo ""
+# 检测字符串是否为空 $
+str4=""
+if [ $str4 ]
+then
+        echo "$str4 : 字符串为空"
+else
+        echo "$str4 : 字符串不为空"
+fi
+
+```
+
+
+
+文件测试运算符
+
+| 操作符  | 说明                                                         | 举例                      |
+| :------ | :----------------------------------------------------------- | :------------------------ |
+| -b file | 检测文件是否是块设备文件，如果是，则返回 true。              | [ -b $file ] 返回 false。 |
+| -c file | 检测文件是否是字符设备文件，如果是，则返回 true。            | [ -c $file ] 返回 false。 |
+| -d file | 检测文件是否是目录，如果是，则返回 true。                    | [ -d $file ] 返回 false。 |
+| -f file | 检测文件是否是普通文件（既不是目录，也不是设备文件），如果是，则返回 true。 | [ -f $file ] 返回 true。  |
+| -g file | 检测文件是否设置了 SGID 位，如果是，则返回 true。            | [ -g $file ] 返回 false。 |
+| -k file | 检测文件是否设置了粘着位(Sticky Bit)，如果是，则返回 true。  | [ -k $file ] 返回 false。 |
+| -p file | 检测文件是否是有名管道，如果是，则返回 true。                | [ -p $file ] 返回 false。 |
+| -u file | 检测文件是否设置了 SUID 位，如果是，则返回 true。            | [ -u $file ] 返回 false。 |
+| -r file | 检测文件是否可读，如果是，则返回 true。                      | [ -r $file ] 返回 true。  |
+| -w file | 检测文件是否可写，如果是，则返回 true。                      | [ -w $file ] 返回 true。  |
+| -x file | 检测文件是否可执行，如果是，则返回 true。                    | [ -x $file ] 返回 true。  |
+| -s file | 检测文件是否为空（文件大小是否大于0），不为空返回 true。     | [ -s $file ] 返回 true。  |
+| -e file | 检测文件（包括目录）是否存在，如果是，则返回 true。          | [ -e $file ] 返回 true    |
+
+- 测试代码
+
+```shell
+#!/bin/bash
+
+echo "===== 文件测试运算符 ====="
+file="/root/test/test.sh"
+
+# -r 判断文件是否可读
+if [ -r $file ]
+then
+        echo "$file 文件可读"
+else
+        echo "$file 文件不可读"
+fi
+
+# -w 判断文件是否可写
+echo ""
+if [ -w $file ]
+then
+        echo "$file 文件可写"
+else
+        echo "$file 文件不可写"
+fi
+
+# -x 判断文件是否可执行
+echo ""
+if [ -x $file ]
+then
+        echo "$file 文件可执行 "
+else
+        echo "$file 文件不可执行"
+fi
+
+# -d 判断文件是否是目录
+echo ""
+if [ -d $file ]
+then
+        echo "$file 是目录文件"
+else
+        echo "$file 不是目录文件"
+fi
+
+# -s 判断文件是否为空
+echo ""
+if [ -s $file ]
+then
+        echo "$file 文件不为空"
+else
+        echo "$file 文件为空"
+fi
+
+# -e 判断文件是否存在
+echo ""
+if [ -e $file ]
+then
+        echo "$file 文件存在"
+else
+        echo "$file 文件不存在"
+fi
+
+```
+
+
+
+#### 六、printf 命令
+
+- shell中，除了`echo`之外还提供了`printf`作为字符串打印命令。使用printf打印字符串可以使用格式化命令来限制打印格式，如限制字符串宽度、字符串对齐方式等。在printf中默认不会添加换行符，需要我们在末尾手动添加`\n`。
+
+  ```shell
+  #!/bin/bash
+  
+  printf "%-10s %-8s %-4s\n" 姓名 性别 体重
+  
+  printf "%-10s %-8s %-4.2f\n" 张三 男 11.11111
+  
+  # 如果没限定参数输出宽度，就按照参数实际宽度输出
+  printf "%-s %-8s %-4.2f\n" 李四   男 22.332
+  
+  # 如果格式化字符串后面有多个参数，会重用格式化字符串
+  printf "%-10s %-8s %-4.f\n" 王五 女 33.65 赵柳 男 22.31
+  
+  # 如果参数个数和格式化字符串不匹配，会按照顺序输出
+  # 对于缺少的参数，如果是字符串会输出空白/null，如果是数字会输出0 
+  # 下面的语句中的20.77会被识别为字符串
+  printf "%-10s %-8s %-4.f\n" 王五 女 33.65 张麻子 20.77
+  
+  ```
+
+
+
