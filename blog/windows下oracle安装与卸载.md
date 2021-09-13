@@ -108,7 +108,7 @@
 
 #### 3. 删除注册表
 
-- 使用`win + R`输入`regedit`打开注册表找到并删除如下信息
+- 使用`win + R`输入`regedit`打开注册表找到并删除如下信息中的oracle项
   - HKEY_LOCAL_MACHINE\SOFTWARE，
   - HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Services，
   - HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Services\EventLog\Application， 
