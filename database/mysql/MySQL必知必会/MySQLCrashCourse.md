@@ -1160,3 +1160,166 @@ ROLLBACK TO updatename;
 commit;		-- 前面回滚到保留点之后，在保留点之前的sql需要执行提交操作才会生效
 ```
 
+
+
+#### 全球化和本地化
+
+```mysql
+-- 字符集 为字母和符号的集合；
+-- 编码 为某个字符集成员的内部表示；
+-- 校对 为规定字符如何比较的指令。
+
+-- 查看MySQL支持的完整的字符集列表
+SHOW CHARACTER SET;
+-- 查看所支持校对的完整列表
+SHOW COLLATION ;
+-- 查看数据库使用的字符集和校对
+SHOW VARIABLES LIKE 'character%';
+SHOW VARIABLES LIKE 'COLLATION%';
+
+
+-- 通过create table 可以为表设置字符集和校对顺序
+CREATE TABLE testtable(
+	column01 INT,
+	column02 varchar(2)
+)DEFAULT CHARACTER SET utf8mb4 COLLATION utf8mb4_general_ci;
+
+-- 设置指定列的字符集
+CREATE TABLE testtable(
+	column01 INT,
+	column02 varchar(2) CHARACTER SET utf8mb4 COLLATION utf8mb4_general_ci
+)DEFAULT CHARACTER SET utf8mb4 COLLATION utf8mb4_general_ci;
+
+-- 校对在对用 ORDER BY子句检索出来的数据排序时起重要的作用。
+-- 如果你需要用与创建表时不同的校对顺序排序特定的 SELECT 语句，可以在 SELECT 语句自身中进行
+select * from customers ORDER BY cust_name,cust_city COLLATE utf8mb4_general_ci;
+
+```
+
+#### 安全管理
+
+```mysql
+-- MySQL服务器的安全基础是：用户应该对他们需要的数据具有适当的访问权，既不能多也不能少
+
+-- mysql权限等信息存储在名为 mysql 的数据库中
+use mysql;
+
+-- 查看当前全部用户
+select user from user;
+-- 创建用户
+-- 创建一个名为test01的用户，设置密码为test01
+CREATE USER test01 IDENTIFIED BY 'test01';
+-- 修改用户名
+RENAME USER test01 TO test02;
+RENAME USER test02 TO test01;
+-- 删除用户
+DROP USER test01;
+
+```
+
+- 权限管理
+
+```mysql
+-- 查询用户权限
+SHOW GRANTS FOR test01;
+SHOW GRANTS FOR root@'localhost';
+-- 用户授权
+-- 授权 test01用户在musqlcc上的查询权限。如果test01执行更新语句则会返回权限不足。
+	-- mysql> update vendors set vend_name = 'ttttttttt' where vend_id = '1010';
+	-- 1142 - UPDATE command denied to user 'test01'@'localhost' for table 'vendors'
+GRANT SELECT ON mysqlcc.* TO test01;
+SHOW GRANTS FOR test01;
+-- 撤销授权
+-- GRANT 的反操作为 REVOKE ，用它来撤销特定的权限。被撤销的权限要求必须存在，否则会报错
+	-- 执行撤销权限之后 test01 用户无法访问 mysqlcc 数据库
+REVOKE SELECT ON mysqlcc.* FROM test01;
+-- GRANT 和 REVOKE 可在几个层次上控制访问权限：
+--   整个服务器，使用 GRANT ALL 和 REVOKE ALL；
+--   整个数据库，使用 ON database.*；
+--   特定的表，使用 ON database.table；
+--   特定的列；
+--   特定的存储过程。
+```
+
+
+
+- 权限说明
+
+| 权限 | 说明 |
+| ---- | ---- |
+| ALL                    |    除GRANT OPTION外的所有权限 |
+| ALTER                  |    使用ALTER TABLE |
+| ALTER ROUTINE			 |   使用ALTER PROCEDURE和DROP PROCEDURE|
+| CREATE                 |    使用CREATE TABLE |
+| CREATE ROUTINE  		 |  使用CREATE PROCEDURE |
+| CREATE TEMPORARY TABLES|		使用CREATE TEMPORARY TABLE |
+| CREATE USER            |    使用CREATE USER、DROP USER、RENAME USER和REVOKE ALL PRIVILEGES |
+| CREATE VIEW            |    使用CREATE VIEW |
+| DELETE                 |    使用DELETE |
+| DROP                   |    使用DROP TABLE |
+| EXECUTE                |    使用CALL和存储过程 |
+| FILE                   |    使用SELECT INTO OUTFILE和LOAD DATA INFILE |
+| GRANT OPTION           |    使用GRANT和REVOKE |
+| INDEX                  |    使用CREATE INDEX和DROP INDEX |
+| INSERT                 |    使用INSERT |
+| LOCK TABLES            |    使用LOCK TABLES |
+| PROCESS                |    使用SHOW FULL PROCESSLIST |
+| RELOAD                 |    使用FLUSH |
+| REPLICATION CLIENT     |    服务器位置的访问 |
+| REPLICATION SLAVE      |    由复制从属使用 |
+| SELECT                 |    使用SELECT |
+| SHOW DATABASES         |    使用SHOW DATABASES |
+| SHOW VIEW              |    使用SHOW CREATE VIEW |
+| SHUTDOWN               |    使用mysqladmin shutdown（用来关闭MySQL） |
+| SUPER                  |    使用CHANGE MASTER、KILL、LOGS、PURGE、MASTER和SET GLOBAL。还允许mysqladmin调试登录 |
+| UPDATE                 |    使用UPDATE |
+| USAGE                  |    无访问权限 |
+
+- 修改密码
+
+```mysql
+-- 修改用户密码
+-- 指定用户
+SET PASSWORD FOR test01 = PASSWORD('test01');
+-- 不指定用户，默认修改当前用户密码
+SET PASSWORD = PASSWORD('test01');
+```
+
+#### 改善性能
+
+- 首先，MySQL（与所有DBMS一样）具有特定的硬件建议。在学习和研究MySQL时，使用任何旧的计算机作为服务器都可以。但对用于生产的服务器来说，应该坚持遵循这些硬件建议。
+
+- 一般来说，关键的生产DBMS应该运行在自己的专用服务器上。
+
+- MySQL是用一系列的默认设置预先配置的，从这些设置开始通常是很好的。但过一段时间后你可能需要调整内存分配、缓冲区大小等。（为查看当前设置，可使用 SHOW VARIABLES; 和 SHOWSTATUS; 。）
+
+- MySQL是一个多用户多线程的DBMS，换言之，它经常同时执行多个任务。如果这些任务中的某一个执行缓慢，则所有请求都会执行缓慢。如果你遇到显著的性能不良，可使用 SHOW PROCESSLIST显示所有活动进程（以及它们的线程ID和执行时间）。你还可以用KILL 命令终结某个特定的进程（使用这个命令需要作为管理员登录）。
+
+- 总是有不止一种方法编写同一条 SELECT 语句。应该试验联结、并、子查询等，找出最佳的方法。
+
+- 使用 EXPLAIN 语句让MySQL解释它将如何执行一条 SELECT 语句。
+
+- 一般来说，存储过程执行得比一条一条地执行其中的各条MySQL语句快。
+
+- 应该总是使用正确的数据类型。
+
+- 决不要检索比需求还要多的数据。换言之，不要用 SELECT * （除非你真正需要每个列）。
+
+- 有的操作（包括 INSERT ）支持一个可选的 DELAYED 关键字，如果使用它，将把控制立即返回给调用程序，并且一旦有可能就实际执行该操作。
+
+  > 当DELAYED插入操作到达的时候， 服务器把数据行放入一个队列中，并立即给客户端返回一个状态信息，这样客户端就可以在数据表被真正地插入记录之前继续进行操作了。如果读取者从该数据表中读取数据，队列中的数据就会被保持着，直到没有读取者为止。接着服务器开始插入延迟数据行（delayed-row）队列中的数据行。
+
+- 在导入数据时，应该关闭自动提交。你可能还想删除索引（包括FULLTEXT 索引），然后在导入完成后再重建它们。
+
+- 必须索引数据库表以改善数据检索的性能。确定索引什么不是一件微不足道的任务，需要分析使用的 SELECT 语句以找出重复的WHERE 和 ORDER BY 子句。如果一个简单的 WHERE 子句返回结果所花的时间太长，则可以断定其中使用的列（或几个列）就是需要索引的对象。
+
+- 你的 SELECT 语句中有一系列复杂的 OR 条件吗？通过使用多条SELECT 语句和连接它们的 UNION 语句，你能看到极大的性能改进。
+
+- 索引改善数据检索的性能，但损害数据插入、删除和更新的性能。如果你有一些表，它们收集数据且不经常被搜索，则在有必要之前不要索引它们。（索引可根据需要添加和删除。）
+
+- LIKE 很慢。一般来说，最好是使用 FULLTEXT 而不是 LIKE 。
+
+- 数据库是不断变化的实体。一组优化良好的表一会儿后可能就面目全非了。由于表的使用和内容的更改，理想的优化和配置也会改变。
+
+- 最重要的规则就是，每条规则在某些条件下都会被打破。
+

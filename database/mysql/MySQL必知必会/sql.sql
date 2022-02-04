@@ -693,18 +693,122 @@ ROLLBACK TO updatename;
 commit;		-- 前面回滚到保留点之后，在保留点之前的sql需要执行提交操作才会生效
 
 
+-- 全球化和本地化
+-- 字符集 为字母和符号的集合；
+-- 编码 为某个字符集成员的内部表示；
+-- 校对 为规定字符如何比较的指令。
+
+-- 查看MySQL支持的完整的字符集列表
+SHOW CHARACTER SET;
+
+-- 查看所支持校对的完整列表
+SHOW COLLATION ;
+
+-- 查看数据库使用的字符集和校对
+SHOW VARIABLES LIKE 'character%';
+SHOW VARIABLES LIKE 'COLLATION%';
+
+-- 通过create table 可以为表设置字符集和校对顺序
+CREATE TABLE testtable(
+	column01 INT,
+	column02 varchar(2)
+)DEFAULT CHARACTER SET utf8mb4 COLLATION utf8mb4_general_ci;
+
+-- 设置指定列的字符集
+CREATE TABLE testtable(
+	column01 INT,
+	column02 varchar(2) CHARACTER SET utf8mb4 COLLATION utf8mb4_general_ci
+)DEFAULT CHARACTER SET utf8mb4 COLLATION utf8mb4_general_ci;
+
+-- 校对在对用 ORDER BY子句检索出来的数据排序时起重要的作用。如果你需要用与创建表时不同的校对顺序排序特定的 SELECT 语句，可以在 SELECT 语句自身中进行
+select * from customers ORDER BY cust_name,cust_city COLLATE utf8mb4_general_ci;
 
 
 
+-- 安全管理
+-- MySQL服务器的安全基础是：用户应该对他们需要的数据具有适当的访问权，既不能多也不能少
+use mysql;
+-- 查看当前全部用户
+select user from user;
+-- 创建用户
+-- 创建一个名为test01的用户，设置密码为test01
+CREATE USER test01 IDENTIFIED BY 'test01';
+-- 修改用户名
+RENAME USER test01 TO test02;
+RENAME USER test02 TO test01;
+-- 删除用户
+DROP USER test01;
+
+-- 查询用户权限
+SHOW GRANTS FOR test01;
+SHOW GRANTS FOR root@'localhost';
+-- 用户授权
+-- 授权 test01用户在musqlcc上的查询权限。如果test01执行更新语句则会返回权限不足。
+	-- mysql> update vendors set vend_name = 'ttttttttt' where vend_id = '1010';
+	-- 1142 - UPDATE command denied to user 'test01'@'localhost' for table 'vendors'
+GRANT SELECT ON mysqlcc.* TO test01;
+SHOW GRANTS FOR test01;
+-- 撤销授权
+-- GRANT 的反操作为 REVOKE ，用它来撤销特定的权限。被撤销的权限要求必须存在，否则会报错
+	-- 执行撤销权限之后 test01 用户无法访问 mysqlcc 数据库
+REVOKE SELECT ON mysqlcc.* FROM test01;
+-- GRANT 和 REVOKE 可在几个层次上控制访问权限：
+--   整个服务器，使用 GRANT ALL 和 REVOKE ALL；
+--   整个数据库，使用 ON database.*；
+--   特定的表，使用 ON database.table；
+--   特定的列；
+--   特定的存储过程。
+
+/*
+--  可以授予或撤销的每个权限  --
+
+ALL                         除GRANT OPTION外的所有权限
+ALTER                       使用ALTER TABLE
+ALTER ROUTINE  							使用ALTER PROCEDURE和DROP PROCEDURE
+CREATE                      使用CREATE TABLE
+CREATE ROUTINE  		    		使用CREATE PROCEDURE
+CREATE TEMPORARY TABLES			使用CREATE TEMPORARY TABLE
+CREATE USER                 使用CREATE USER、DROP USER、RENAME USER和REVOKE ALL PRIVILEGES
+CREATE VIEW                 使用CREATE VIEW
+DELETE                      使用DELETE
+DROP                        使用DROP TABLE
+EXECUTE                     使用CALL和存储过程
+FILE                        使用SELECT INTO OUTFILE和LOAD DATA INFILE
+GRANT OPTION                使用GRANT和REVOKE
+INDEX                       使用CREATE INDEX和DROP INDEX
+INSERT                      使用INSERT
+LOCK TABLES                 使用LOCK TABLES
+PROCESS                     使用SHOW FULL PROCESSLIST
+RELOAD                      使用FLUSH
+REPLICATION CLIENT          服务器位置的访问
+REPLICATION SLAVE           由复制从属使用
+SELECT                      使用SELECT
+SHOW DATABASES              使用SHOW DATABASES
+SHOW VIEW                   使用SHOW CREATE VIEW
+SHUTDOWN                    使用mysqladmin shutdown（用来关闭MySQL）
+SUPER                       使用CHANGE MASTER、KILL、LOGS、PURGE、MASTER和SET GLOBAL。还允许mysqladmin调试登录
+UPDATE                      使用UPDATE
+USAGE                       无访问权限
+
+*/
+
+-- 修改用户密码
+-- 指定用户
+SET PASSWORD FOR test01 = PASSWORD('test01');
+-- 不指定用户，默认修改当前用户密码
+-- SET PASSWORD = PASSWORD('test01');
+
+use mysqlcc;
+show tables;
 
 
-
-
-
-
-
-
-
+-- 数据库维护
+--  ANALYZE TABLE 用来检查表键是否正确
+ANALYZE TABLE orders;
+--  CHECK TABLE 用来针对许多问题对表进行检查
+CHECK TABLE orders;
+-- 如果 MyISAM 表访问产生不正确和不一致的结果，可能需要用REPAIR TABLE 来修复相应的表。这条语句不应该经常使用，如果需要经常使用，可能会有更大的问题要解决。
+-- 如果从一个表中删除大量数据，应该使用 OPTIMIZE TABLE 来收回所用的空间，从而优化表的性能。
 
 
 
