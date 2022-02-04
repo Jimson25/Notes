@@ -898,3 +898,265 @@ SELECT * FROM cust_filter ;
 
 
 
+#### 存储过程
+
+> 存储过程就是为以后的使用而保存的一条或多条MySql语句的集合。可将其视为批文件，虽然他们的作用不仅限于批处理。
+
+- 创建存储过程
+
+```mysql
+-- 创建一个名为 productpricing 的存储过程，实现从products中查询prod_price的平均值
+-- 在mysql命令行中默认使用分号作为语句结束符，但是在存储过程中可能存在分号是存储过程的一部分的情况，这时候需要使用 DEMITILER 临时更改语句结束符
+-- DELIMITER //
+CREATE PROCEDURE productpricing()
+BEGIN
+	SELECT AVG(prod_price) AS priceaverage FROM products;
+END;
+-- DELIMITER ;
+
+-- 调用存储过程
+CALL productpricing();
+```
+
+- 删除存储过程
+
+```mysql
+-- 删除存储过程语句中存储过程名后面没有括号，如果被删除的存储过程不存在语句执行会报错，可以在语句中添加 if exists 使只当其存在时才删除
+DROP PROCEDURE IF EXISTS productpricing;
+```
+
+- 使用参数
+
+> 存储过程中添加参数方式为在存储过程名后面的括号中指定，格式为 传输类型 参数名 参数类型
+>
+> MySQL支持IN、OUT、INOUT三种类型参数 IN：传递参数给存储过程 OUT：从存储过程中输出参数 INOUT：对存储过程输入和输出
+
+```mysql
+-- OUT
+-- DELIMITER //
+CREATE PROCEDURE productpricing(
+	OUT pl DECIMAL(8,2),
+	OUT ph DECIMAL(8,2),
+	OUT pa DECIMAL(8,1)
+)
+BEGIN
+	SELECT Min(prod_price) INTO pl FROM products;
+	SELECT MAX(prod_price) INTO ph FROM products;
+	SELECT AVG(prod_price) INTO pa FROM products;
+END;
+-- DELIMITER ;
+
+-- 输出类型参数调用
+-- 所有MySQL变量必须以@开始。这里在调用存储过程时传入了3个变量作为参数，存储过程调用结果会保存在这三个变量中，调用存储过程之后通过select语句查询三个变量值即为存储过程返回值
+CALL productpricing(@procelow, @privehigh, @priceverage);
+SELECT @procelow, @privehigh, @priceverage;
+
+-- IN 
+-- 参数中指定了输入和输出参数，输入参数传入值，输出参数传入一个MySQL变量用于存储返回结果
+CREATE PROCEDURE ordertotal(
+	IN onumber INT,
+	OUT ototal DECIMAL(8,2)
+)
+BEGIN
+	SELECT SUM(item_price * quantity) FROM orderitems WHERE order_num = onumber INTO ototal;
+END;
+-- 输入类型参数调用
+CALL ordertotal(20005, @total);
+select @total AS total_order;
+```
+
+- 存储过程应用(建立智能存储过程)
+
+```mysql
+-- Name:orderTotal
+-- Parameters: 	onumber = order number
+-- 				taxable = 0 if not taxable, 1 of taxable
+-- 				ototal = order total varable
+DROP PROCEDURE IF EXISTS ordertotal;
+CREATE PROCEDURE ordertotal(
+	IN onumber INT,
+	IN taxable BOOLEAN,
+	OUT ototal DECIMAL(8,2)
+) COMMENT 'Obtain order total,optionally adding tax'
+BEGIN
+	-- 声明两个变量
+	-- declare variable for total
+	DECLARE total DECIMAL(8,2);
+	-- declare tax percentage
+	DECLARE taxrate INT DEFAULT 6;
+	
+	-- get the order total
+	SELECT SUM(item_price * quantity) FROM orderitems WHERE order_num = onumber INTO total;
+	
+	-- is the taxable
+	IF taxable /** != 0 **/ THEN
+		SELECT total+(total/100*taxrate) INTO total;
+	END IF;
+	
+	-- finally, save result to variable
+	SELECT total INTO ototal;
+END;
+-- 调用
+CALL ordertotal(20005, 0, @total);
+SELECT @total;
+-- or
+CALL ordertotal(20005, 1, @total);
+SELECT @total;
+```
+
+- 检查存储过程
+
+```mysql
+-- 查询存储过程的创建语句
+SHOW CREATE PROCEDURE ordertotal;
+-- 查询存储过程状态
+SHOW PROCEDURE STATUS LIKE 'ordertotal';
+
+-- ------------------------------- --
+-- 获取建表语句
+show create table orders;
+-- 获取表状态
+show table status like 'orders';
+
+-- 获取创建数据库语句
+show create database mysqlcc;
+```
+
+
+
+#### 触发器
+
+> 触发器可以实现当某个表发生变更时自动执行指定的操作。可以在 DELETE、UPDATE、INSERT 语句执行之前或执行之后自动执行一条sql语句。
+>
+> mysql要求触发器名在表中唯一，但是不要求在数据库中唯一，即在一个数据库中不同的两张变可以存在同名的触发器，但是在实际使用时建议确保触发器名在数据库中唯一
+>
+> 一个表最多支持6个触发器，分别为增删改的before和after，单一触发器不能和多个事件或多个表关联，因此如果需要对insert和update执行触发器操作则需要创建多个触发器
+>
+> 如果为某种操作创建了before触发器并且before触发器执行失败了，那么后续的sql语句将不会被执行
+
+- 创建触发器
+
+```mysql
+-- 创建触发器时如果执行查询操作需要将查询结果保存在一个MySQL变量中，否则会返回 1415 - Not allowed to return a result set from a trigger
+-- DELIMITER \\					-- 临时修改sql语句结束符为 \\
+CREATE TRIGGER insertproduct 	-- 创建一个名为insertproduct的触发器
+AFTER INSERT ON products  		-- 触发条件为after insert，关联 product 表
+FOR EACH ROW					-- 对每个插入行都执行
+/* 触发器被触发时执行的操作 */
+BEGIN
+ SELECT 'product added' INTO @result;
+END;
+-- DELIMITER ;					-- 临时修改sql语句结束符为 ;
+
+-- 调用
+INSERT INTO products VALUE('test','1003','zhangsan','123','insert test');
+SELECT @result;
+DELETE FROM products WHERE prod_id = 'test';
+```
+
+- 删除触发器
+
+```mysql
+DROP TRIGGER /* IF EXISTS */ insertproduct;
+```
+
+- 使用触发器
+
+```mysql
+-- insert触发器
+-- 在insert触发器中，可以引用一个名为 `NEW` 的虚拟表访问被插入的行
+-- 在before insert中可以更新 NEW 中的值，即可以在before insert中修改要写入的值。
+-- 对于自增的列，在before时new中的值为0，在after时值为生成的新值
+DROP TRIGGER IF EXISTS neworder;
+CREATE TRIGGER neworder 
+AFTER INSERT ON orders 
+FOR EACH ROW 
+BEGIN 
+	SELECT NEW.order_num INTO @order_num;
+END;
+DELETE FROM orders WHERE order_num = '1';
+INSERT INTO orders (order_date,cust_id) VALUE (NOW(),'10001');
+SELECT @order_num;
+
+-- delete触发器
+-- 在delete触发器中可以引用一个名为 `OLD` 的虚拟表访问被删除的行
+-- OLD 中的值是只读的不能被更新
+-- 使用 before DELETE 触发器可以保证存档和删除动作的原子性
+DROP TRIGGER IF EXISTS deleteorder;
+CREATE TRIGGER deleteorder
+BEFORE DELETE ON orders
+FOR EACH ROW
+BEGIN
+	INSERT INTO archive_orders(order_num, order_date, cust_id) VALUES(OLD.order_num, OLD.order_date, OLD.cust_id);
+END;
+
+-- update触发器
+-- 在update触发器中，可以引用一个`OLD`虚拟表用来访问之前的数据，引用`NEW`虚拟表访问新写入的数据
+-- OLD虚拟表中的数据是只读的，NEW虚拟表中的数据是可以修改的
+DROP TRIGGER IF EXISTS updatevendor;
+CREATE TRIGGER updatevendor 
+BEFORE UPDATE ON vendors 
+FOR EACH ROW
+BEGIN
+	SET NEW.vend_state = UPPER(NEW.vend_state);
+END;
+
+-- 使用before update 触发器
+UPDATE vendors SET vendors.vend_state = 'bj' WHERE vend_id = '1005';
+
+```
+
+
+
+#### 事务管理
+
+```mysql
+-- MySQL中两种较为常用的存储引擎中，MyISAM不支持明确的事务处理，InnoDB支持事务。因此在建表的时候如果需要支持事务，则存储引擎需要选择InnoDB
+-- 事务处理（transaction processing）可以用来维护数据库的完整性，它保证成批的MySQL操作要么完全执行，要么完全不执行
+	-- 事务（ transaction ）指一组SQL语句；
+	-- 回退（ rollback ）指撤销指定SQL语句的过程；
+	-- 提交（ commit ）指将未存储的SQL语句结果写入数据库表；
+	-- 保留点（ savepoint ）指事务处理中设置的临时占位符（place-holder），你可以对它发布回退（与回退整个事务处理不同）。
+```
+
+- 更改默认提交行为
+
+```mysql
+-- MySQL中默认是自动提交所有更改的，即语句执行之后立即生效。如果需要设置MySQL不自动提交更改，需要使用 SET autocommit=0 来关闭默认提交行为
+-- SET autocommit=0 是针对连接而不是针对服务器，即该设置只会对当前连接生效
+SET autocommit=0;
+DELETE FROM vendors WHERE vend_id='1007';
+UPDATE vendors SET vend_name='name' WHERE vend_id='1008';
+commit;
+select * from vendors WHERE vend_id = '1008';
+SET autocommit=1;
+```
+
+- 事务管理
+
+```mysql
+-- 使用 START TRANSACTION 开启事务
+START TRANSACTION;
+INSERT INTO `mysqlcc`.`vendors` (`vend_name`, `vend_address`, `vend_city`, `vend_state`, `vend_zip`, `vend_country`) VALUES ('test01', 't', 't', 't', 't', 't');
+COMMIT;
+-- 一个 START TRANSACTION 对应一次commit或rollback，前面的事务开启后提交了，在往后需要开启事务需要重新执行 START TRANSACTION 
+START TRANSACTION;
+UPDATE vendors SET `vend_name` = 'name01' WHERE `vend_id` = '1010';
+ROLLBACK;
+
+```
+
+- 使用保留点
+
+```mysql
+-- 使用保留点
+-- 默认情况下，事务撤销会将开启事务到执行撤销操作之间的所有sql全部撤销，但是有些时候可能需要部分撤销或提交，可以通过使用保留点实现部分撤销
+-- 保留点在事务执行完成之后会自动释放。同时也可以使用 RELEASE SAVEPOINT 手动释放
+START TRANSACTION;
+INSERT INTO `mysqlcc`.`vendors` (`vend_name`, `vend_address`, `vend_city`, `vend_state`, `vend_zip`, `vend_country`) VALUES ('test01', 't', 't', 't', 't', 't');
+SAVEPOINT updatename;
+UPDATE vendors SET `vend_name` = 'name01' WHERE `vend_id` = '1010';
+ROLLBACK TO updatename;
+commit;		-- 前面回滚到保留点之后，在保留点之前的sql需要执行提交操作才会生效
+```
+
