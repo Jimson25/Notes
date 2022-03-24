@@ -107,5 +107,42 @@ InnoDB中处理死锁的办法是，将持有最少行级排他锁的事务进�
 
 ​	Archive引擎只支持SELECT和INSERT操作，数据占用空间很少。Archive引擎支持行级锁和专用的缓冲区，可以实现并发插入，但是每次执行select时都需要执行全表扫描。
 
+### 1.5.5 存储引擎选择
 
+​	除非有明确的需求需要用到InnoDB所不具备的属性，并且没有其他的办法替代，否则都应该选择InnoDB存储引擎。
 
+### 1.5.6 转换表的引擎
+
+#### 	ALERT TABLE
+
+```mysq
+ALERT TABLE TABLE EMGIN = InnoDB;
+```
+
+- 适合所有存储引擎
+
+- 需要执行很长时间。这种方式下，MySQL会新建一张新存储的表，并将数据按行复制到新表中。复制期间会消耗系统所有IO性能，同时原表会加上读锁。
+
+  #### 导出并修改
+
+  使用mysqldmp将数据导出为dmp文件，修改dmp文件中create table语句中的存储引擎选项并修改表名。
+
+- 安全
+
+- 效率低
+
+  #### 创建与查询
+
+  创建一个新的存储引擎的表，再使用insert ··· select语法导出语句。
+
+  ```mysql
+  create table innoDB_table like myisam_table;
+  alert table innodb_table engine = InnoDB;
+  insert into innodb_table select * from myisam_table;		
+  ```
+
+- 安全高效
+
+- 在执行的时候最好将原表加锁，保证两张表数据一致。
+
+- 如果数据量大，最好分批量加事务执行。
