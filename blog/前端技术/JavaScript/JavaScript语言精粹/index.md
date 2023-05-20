@@ -231,6 +231,65 @@ JavaScript中，函数也是对象。函数对象连接到Function.prototype(该
 函数调用时，形参个数与实参个数可以不相等。当实参个数小于形参个数时，缺失的形参将被赋值为undefined。当实参个数大于形参个数时，多余的实参将被忽略。
 
 - **JavaScript调用模式**
-- 方法调用
 
-当函数被保存为对象的一个属性时，我们称它为一个 `方法`。当一个方法被调用时，this绑定到该对象。
+#### 方法调用模式
+
+- 当函数被保存为对象的一个属性时，我们称它为一个 `方法`。当一个方法被调用时，this绑定到该对象。方法可以使用this去访问对象，所以它能从对象中取值或修改该对象的值。
+- this到对象的绑定发生在调用的时候。这个超级迟绑定使函数可以对this高度复用。`tips:`这里可以分为两种情况讨论：
+
+  - 第一种情况是函数定义在公共作用域内。这时候如果在函数中使用this，那么this绑定到调用函数的对象上，这种情况下要求调用方必须包含this指向的属性。那么更好的使用方法是将this指向的属性调整为函数的参数，由调用方传递到函数中。
+
+    ```javascript
+    function greet() {
+    console.log("Hello, " + this.name);
+    }
+
+    const person1 = { name: "John" };
+    const person2 = { name: "Alice" };
+
+    person1.greet = greet;
+    person2.greet = greet;
+
+    person1.greet(); // 输出 "Hello, John"
+    person2.greet(); // 输出 "Hello, Alice"
+
+    ```
+  - 第二种情况下是函数定义在对象中。这种情况下this依然指向调用函数的对象，但是存在 `一个误区`就是函数只能由定义函数的对象调用，这里应该区别于java等后端语言。如下代码中，可以通过其他对象调用对象中的方法。
+
+    ```javascript
+    const person = {
+      name: "John",
+      greet: function() {
+        console.log("Hello, " + this.name);
+      }
+    };
+
+    person.greet(); // 输出 "Hello, John"
+
+    const anotherPerson = {
+      name: "Alice"
+    };
+
+    anotherPerson.greet = person.greet;
+    anotherPerson.greet(); // 输出 "Hello, Alice"
+
+    ```
+- 通过this取得它所属对象的上下文的方法称为 `公共方法`。公共方法是指定义在对象内部，并且可以通过对象调用的方法。在对象中，只有使用普通函数语法（非箭头函数）定义的方法才能使用 `this` 关键字来访问对象的属性，并被称为公共方法。
+
+  ```javascript
+  let obj = {
+      age:18,
+      setAge:function() {
+          this.log();
+          this.age = 20;
+      },
+      log:function(){
+          console.log(this.age);
+      }
+  }
+  obj.setAge();
+  console.log(obj.age);
+
+  ```
+
+#### 函数调用模式
