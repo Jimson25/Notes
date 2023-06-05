@@ -1,7 +1,7 @@
 ## 自定义Spring-boot starter实现自动配置
 
 1. 创建一个Maven/springboot项目并实现业务代码
-   ![项目结构](./doc/image/img/项目结构.jpg)
+   ![项目结构](../doc/image/img/项目结构.jpg)
 2. 修改pom文件如下
 
    ```xml
