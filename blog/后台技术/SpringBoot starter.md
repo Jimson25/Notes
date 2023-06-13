@@ -168,4 +168,4 @@
    org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
        com.bdht.starter.config.LogToolAutoConfiguration
    ```
-5. springboot启动时会吧配置类加载为 `EnableAutoConfiguration`的一个子类
+5. springboot启动时会把置类加载为 `EnableAutoConfiguration`的一个子类
