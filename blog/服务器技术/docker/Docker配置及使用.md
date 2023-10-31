@@ -22,15 +22,84 @@ docker包含三个基本概念，分别为镜像(Image)、容器(Container)、�
 
 ##### 1. CentOS自动安装
 
-`curl -sSL https://get.daocloud.io/docker | sh`
-
-- 使用 `yum` 安装：
+- 配置yum源
 
 ```
+sudo yum-config-manager \
+--add-repo \
+http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+
+```
+
+- 更新yum包(测试环境)
+
+```
+sudo yum -y update
+```
+
+- 卸载旧版本
+
+```
+sudo yum remove docker \
+                  docker-client \
+                  docker-client-latest \
+                  docker-common \
+                  docker-latest \
+                  docker-latest-logrotate \
+                  docker-logrotate \
+                  docker-engine
+
+```
+
+- 升级安装需要的软件包
+
+```
+sudo yum install -y yum-utils device-mapper-persistent-data lvm2
+```
+
+- 查看可用的版本
+
+```
+sudo yum list docker-ce --showduplicates | sort -r
+```
+
+- 安装docker
+
+```
+# 默认安装最新版
 sudo yum install -y docker-ce docker-ce-cli containerd.io
 
-#以下是在安装k8s的时候使用
-yum install -y docker-ce-20.10.7 docker-ce-cli-20.10.7  containerd.io-1.4.6
+
+# 指定安装版本
+sudo yum install -y docker-ce-20.10.7 docker-ce-cli-20.10.7  containerd.io-1.4.6
+```
+
+- 启动docker
+
+```
+sudo systemctl enable docker --now
+```
+
+- 配置docker加速
+
+```
+sudo mkdir -p /etc/docker
+
+sudo tee /etc/docker/daemon.json <<-'EOF'
+{
+  "registry-mirrors": ["https://registry.docker-cn.com","https://docker.mirrors.ustc.edu.cn"],
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "100m"
+  },
+  "storage-driver": "overlay2"
+}
+EOF
+
+sudo systemctl daemon-reload
+
+sudo systemctl restart docker
 ```
 
 ##### 2. 启动Docker
@@ -228,7 +297,7 @@ NAMES: 自动分配的容器名称。
   NAME                                        DESCRIPTION                                     STARS     OFFICIAL   AUTOMATED
   rabbitmq                                    RabbitMQ is an open source multi-protocol me…   3546      [OK]   
   bitnami/rabbitmq                            Bitnami Docker Image for RabbitMQ               57                   [OK]
-  tutum/rabbitmq                              Base docker image to run a RabbitMQ server      22               
+  tutum/rabbitmq                              Base docker image to run a RabbitMQ server      22       
   ......
   ```
 
