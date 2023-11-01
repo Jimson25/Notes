@@ -80,7 +80,7 @@ sudo firewall-cmd --list-ports | grep 6443
 
 ### 安装步骤
 
-- 设置k8s源# 设置k8s源
+- 设置k8s源
 
 ```bash
 cat <<EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
@@ -99,7 +99,6 @@ EOF
 - 安装k8s集群
 
 ```
-# 安装k8s集群
 sudo yum install -y kubelet-1.20.9 kubeadm-1.20.9 kubectl-1.20.9 --disableexcludes=kubernetes
 
 ```
@@ -107,7 +106,6 @@ sudo yum install -y kubelet-1.20.9 kubeadm-1.20.9 kubectl-1.20.9 --disableexclud
 - 启动 kubelet
 
 ```
-# 启动 kubelet
 sudo systemctl enable --now kubelet
 ```
 
