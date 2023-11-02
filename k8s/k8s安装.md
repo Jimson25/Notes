@@ -52,12 +52,10 @@ sudo sysctl --system
 
 > 这里如果是虚拟机或者开发测试环境，可以直接禁用防火墙
 
-
 ```
 sudo systemctl stop firewalld
 sudo systemctl disable firewalld
 ```
-
 
 ```
 # 查看防火墙状态
@@ -79,7 +77,7 @@ sudo firewall-cmd --list-ports | grep 6443
 
 ### 配置静态IP
 
->  如果配置IP为DHCP，后面重启后IP发生变化会很麻烦。这里以ens33网卡为例
+> 如果配置IP为DHCP，后面重启后IP发生变化会很麻烦。这里以ens33网卡为例
 
 - 修改网卡配置信息
 
@@ -117,7 +115,6 @@ GATEWAY=192.168.86.1  #(设置本机连接的网关的IP地址。)
 ```
 service network restart
 ```
-
 
 ## 二、 **安装集群所需组件**
 
@@ -193,7 +190,6 @@ chmod +x ./images.sh && ./images.sh
 echo "192.168.86.138  cluster-endpoint" >> /etc/hosts
 ```
 
-
 - 主节点初始化(**这里要保证所有节点的网络地址不重叠**)
 
 ```
@@ -240,43 +236,39 @@ kubeadm init \
 >
 > kubeadm init 更多信息参考 [官方文档](https://kubernetes.io/zh-cn/docs/reference/setup-tools/kubeadm/kubeadm-init/ "kubeadm init文档")
 
-
-
 ## 四、初始化后续集群
 
 - 在完成上面的操作后，当执行成功后会出现下面内容：
 
->
 > Your Kubernetes control-plane has initialized successfully!
 >
 > To start using your cluster, you need to run the following as a regular user:
 >
->   mkdir -p $HOME/.kube
->   sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
->   sudo chown $(id -u):$(id -g) $HOME/.kube/config
+> mkdir -p $HOME/.kube
+> sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+> sudo chown $(id -u):$(id -g) $HOME/.kube/config
 >
 > Alternatively, if you are the root user, you can run:
 >
->   export KUBECONFIG=/etc/kubernetes/admin.conf
+> export KUBECONFIG=/etc/kubernetes/admin.conf
 >
 > You should now deploy a pod network to the cluster.
 > Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
->   https://kubernetes.io/docs/concepts/cluster-administration/addons/
+> https://kubernetes.io/docs/concepts/cluster-administration/addons/
 >
 > You can now join any number of control-plane nodes by copying certificate authorities
 > and service account keys on each node and then running the following as root:
 >
->   kubeadm join cluster-endpoint:6443 --token 3qtkfg.23rdu2horxrhhr2b 
->     --discovery-token-ca-cert-hash sha256:f1e2c003e9a81ff7d4b973fc26ad29d8955df8624099177c738f8edf6f386706
->     --control-plane
+> kubeadm join cluster-endpoint:6443 --token 3qtkfg.23rdu2horxrhhr2b
+> --discovery-token-ca-cert-hash sha256:f1e2c003e9a81ff7d4b973fc26ad29d8955df8624099177c738f8edf6f386706
+> --control-plane
 >
 > Then you can join any number of worker nodes by running the following on each as root:
 >
 > kubeadm join cluster-endpoint:6443 --token 3qtkfg.23rdu2horxrhhr2b
->     --discovery-token-ca-cert-hash sha256:f1e2c003e9a81ff7d4b973fc26ad29d8955df8624099177c738f8edf6f386706
+> --discovery-token-ca-cert-hash sha256:f1e2c003e9a81ff7d4b973fc26ad29d8955df8624099177c738f8edf6f386706
 
 通过上面的信息可以看到，我们需要部署后续节点还需要执行后续部分操作；
-
 
 ### 配置kubectl连接信息
 
@@ -285,7 +277,6 @@ mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
-
 
 ### 安装网络插件
 
@@ -305,7 +296,6 @@ curl https://docs.projectcalico.org/v3.20/manifests/calico.yaml -O
 kubectl apply -f calico.yaml
 ```
 
-
 ### 添加主节点
 
 ```
@@ -313,7 +303,6 @@ kubeadm join cluster-endpoint:6443 --token 3qtkfg.23rdu2horxrhhr2b \
     --discovery-token-ca-cert-hash sha256:f1e2c003e9a81ff7d4b973fc26ad29d8955df8624099177c738f8edf6f386706 \
     --control-plane
 ```
-
 
 ### 添加工作节点
 
@@ -325,6 +314,17 @@ kubeadm join cluster-endpoint:6443 --token 3qtkfg.23rdu2horxrhhr2b \
 执行完成后在主节点执行 `kubectl get nodes` 查看节点状态
 
 
+### 执行报错解决
+
+出现 `FileContent--proc-sys-net-ipv4-ip_forward]: /proc/sys/net/ipv4/ip_forward contents are not set to 1`
+
+> sysctl -w net.ipv4.ip_forward=1
+>
+> 这种方式下在重启后不会被保留，如果要永久写入，需要执行以下操作：
+>
+> 编辑 /etc/sysctl.conf， 添加 `net.ipv4.ip_forward = 1`
+
+
 ### 创建令牌
 
 上面加入集群的命令所用到的令牌的有效期是24h，如果令牌过期，需要重新生成新的令牌。
@@ -334,7 +334,6 @@ kubeadm join cluster-endpoint:6443 --token 3qtkfg.23rdu2horxrhhr2b \
 ```
 kubeadm token create --print-join-command
 ```
-
 
 ## 部署可视化界面
 
@@ -399,13 +398,11 @@ subjects:
   namespace: kubernetes-dashboard
 ```
 
-
 - 根据配置文件添加用户
 
 ```
 kubectl apply -f dash-user.yaml
 ```
-
 
 - 获取访问token
 
