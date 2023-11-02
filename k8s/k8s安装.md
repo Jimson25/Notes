@@ -50,6 +50,15 @@ sudo sysctl --system
 
 ### 放行 **6443** 端口
 
+> 这里如果是虚拟机或者开发测试环境，可以直接禁用防火墙
+
+
+```
+sudo systemctl stop firewalld
+sudo systemctl disable firewalld
+```
+
+
 ```
 # 查看防火墙状态
 sudo systemctl status firewalld
@@ -67,6 +76,48 @@ sudo firewall-cmd --list-ports | grep 6443
 
 
 ```
+
+### 配置静态IP
+
+>  如果配置IP为DHCP，后面重启后IP发生变化会很麻烦。这里以ens33网卡为例
+
+- 修改网卡配置信息
+
+```
+vim /etc/sysconfig/network-scripts/ifcfg-ens33
+```
+
+- 调整如下配置
+
+```
+DEVICE=ens33         #描述网卡对应的设备别名，例如ifcfg-eth0的文件中它为eth0
+BOOTPROTO=static       #设置网卡获得ip地址的方式，可能的选项为static，dhcp或bootp，分别对应静态指定的 ip地址，通过dhcp协议获得的ip地址，通过bootp协议获得的ip地址
+BROADCAST=192.168.86.255   #对应的子网广播地址
+IPADDR=12.168.86.138      #如果设置网卡获得 ip地址的方式为静态指定，此字段就指定了网卡对应的ip地址
+NETMASK=255.255.255.0    #网卡对应的网络掩码
+NETWORK=192.168.86.0     #网卡对应的网络地址
+```
+
+- 修改网关配置
+
+```
+vim /etc/sysconfig/network
+```
+
+- 调整如下配置
+
+```
+NETWORKING=yes     #(表示系统是否使用网络，一般设置为yes。如果设为no，则不能使用网络，而且很多系统服务程序将无法启动)
+HOSTNAME=centos    #(设置本机的主机名，这里设置的主机名要和/etc/hosts中设置的主机名对应)
+GATEWAY=192.168.86.1  #(设置本机连接的网关的IP地址。)
+```
+
+- 重启网络
+
+```
+service network restart
+```
+
 
 ## 二、 **安装集群所需组件**
 
