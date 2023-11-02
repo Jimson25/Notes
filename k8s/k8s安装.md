@@ -93,7 +93,7 @@ vim /etc/sysconfig/network-scripts/ifcfg-ens33
 DEVICE=ens33         #描述网卡对应的设备别名，例如ifcfg-eth0的文件中它为eth0
 BOOTPROTO=static       #设置网卡获得ip地址的方式，可能的选项为static，dhcp或bootp，分别对应静态指定的 ip地址，通过dhcp协议获得的ip地址，通过bootp协议获得的ip地址
 BROADCAST=192.168.86.255   #对应的子网广播地址
-IPADDR=12.168.86.138      #如果设置网卡获得 ip地址的方式为静态指定，此字段就指定了网卡对应的ip地址
+IPADDR=192.168.86.138      #如果设置网卡获得 ip地址的方式为静态指定，此字段就指定了网卡对应的ip地址
 NETMASK=255.255.255.0    #网卡对应的网络掩码
 NETWORK=192.168.86.0     #网卡对应的网络地址
 ```
