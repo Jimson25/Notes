@@ -84,10 +84,12 @@ sudo systemctl enable docker --now
 
 ```
 sudo mkdir -p /etc/docker
-
 sudo tee /etc/docker/daemon.json <<-'EOF'
 {
-  "registry-mirrors": ["https://registry.docker-cn.com","https://docker.mirrors.ustc.edu.cn"],
+  "registry-mirrors": [
+    "https://registry.docker-cn.com",
+    "https://docker.mirrors.ustc.edu.cn"
+  ],
   "exec-opts": ["native.cgroupdriver=systemd"],
   "log-driver": "json-file",
   "log-opts": {
@@ -96,9 +98,7 @@ sudo tee /etc/docker/daemon.json <<-'EOF'
   "storage-driver": "overlay2"
 }
 EOF
-
 sudo systemctl daemon-reload
-
 sudo systemctl restart docker
 ```
 
@@ -122,24 +122,6 @@ sudo systemctl restart docker
   ......
   ```
 
-##### 4. 配置加速
-
-```
-sudo mkdir -p /etc/docker
-sudo tee /etc/docker/daemon.json <<-'EOF'
-{
-  "registry-mirrors": ["https://82m9ar63.mirror.aliyuncs.com"],
-  "exec-opts": ["native.cgroupdriver=systemd"],
-  "log-driver": "json-file",
-  "log-opts": {
-    "max-size": "100m"
-  },
-  "storage-driver": "overlay2"
-}
-EOF
-sudo systemctl daemon-reload
-sudo systemctl restart docker
-```
 
 #### 三、Docker容器基本使用
 
@@ -297,7 +279,7 @@ NAMES: 自动分配的容器名称。
   NAME                                        DESCRIPTION                                     STARS     OFFICIAL   AUTOMATED
   rabbitmq                                    RabbitMQ is an open source multi-protocol me…   3546      [OK]   
   bitnami/rabbitmq                            Bitnami Docker Image for RabbitMQ               57                   [OK]
-  tutum/rabbitmq                              Base docker image to run a RabbitMQ server      22       
+  tutum/rabbitmq                              Base docker image to run a RabbitMQ server      22     
   ......
   ```
 

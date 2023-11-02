@@ -159,6 +159,8 @@ sudo systemctl enable --now kubelet
 
 ## 三、引导启动集群
 
+**（只在一台要设置为主节点网关的节点上执行）**
+
 ### 提前下载所需文件
 
 ```bash
@@ -180,8 +182,6 @@ EOF
    
 chmod +x ./images.sh && ./images.sh
 ```
-
-### 初始化主节点
 
 - 为所有机器添加master节点域名映射
 
@@ -235,8 +235,6 @@ kubeadm init \
 > 总的来说，假如我有一组用于访问订单系统的服务，这个服务里面部署了多个pod。那么服务网络分配一个服务网络地址用于访问这一组服务，而pod网络则会为这一组服务的每一个pod分配pod地址。
 >
 > kubeadm init 更多信息参考 [官方文档](https://kubernetes.io/zh-cn/docs/reference/setup-tools/kubeadm/kubeadm-init/ "kubeadm init文档")
-
-## 四、初始化后续集群
 
 - 在完成上面的操作后，当执行成功后会出现下面内容：
 
@@ -296,6 +294,11 @@ curl https://docs.projectcalico.org/v3.20/manifests/calico.yaml -O
 kubectl apply -f calico.yaml
 ```
 
+**至此，管理节点初始化完成。**
+
+
+## 四、往集群添加节点
+
 ### 添加主节点
 
 ```
@@ -313,7 +316,6 @@ kubeadm join cluster-endpoint:6443 --token 3qtkfg.23rdu2horxrhhr2b \
 
 执行完成后在主节点执行 `kubectl get nodes` 查看节点状态
 
-
 ### 执行报错解决
 
 出现 `FileContent--proc-sys-net-ipv4-ip_forward]: /proc/sys/net/ipv4/ip_forward contents are not set to 1`
@@ -323,7 +325,6 @@ kubeadm join cluster-endpoint:6443 --token 3qtkfg.23rdu2horxrhhr2b \
 > 这种方式下在重启后不会被保留，如果要永久写入，需要执行以下操作：
 >
 > 编辑 /etc/sysctl.conf， 添加 `net.ipv4.ip_forward = 1`
-
 
 ### 创建令牌
 
@@ -335,7 +336,7 @@ kubeadm join cluster-endpoint:6443 --token 3qtkfg.23rdu2horxrhhr2b \
 kubeadm token create --print-join-command
 ```
 
-## 部署可视化界面
+## 五、部署可视化界面
 
 ### 安装可视化界面pod
 
