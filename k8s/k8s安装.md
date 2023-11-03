@@ -12,6 +12,10 @@ hostnamectl set-hostname k8s-01
 
 这里设置主机名为k8s-01，多台机器可以根据实际情况设置
 
+### 配置hosts文件
+
+将k8s-01添加到hosts文件 127.0.0.1 项后面
+
 ### 查看MAC地址
 
 ```
