@@ -48,6 +48,79 @@ k8s自身具备自愈能力，以上面my-app为例，该deployment存在三个p
 
 在上面的案例中，mq65q的pod位于k8s-02节点上，而此时如果k8s-02节点意外失联，如网络故障等，那么k8s会在剩余的存活节点上再重新创建一个新的pod，保证集群中对应的pod个数为我们前面部署的时候设置replicas的个数。
 
+
+
+## 服务网络
+
+### service
+
+k8s将一组pod抽象为一个service并分配一个服务地址，通过这个服务地址可以访问到这一组pod。
+
+
+### 暴露一组服务
+
+通过下面的命令可以将my-app这个部署作为一组服务暴露出去：
+
+```
+kubectl expose deploy my-app --port=8000 --target-port=80
+```
+
+> --port: 这一组服务要对外暴露的端口
+>
+> --target-port: 8000端口对应的pod内部的端口，即将pod内部的80端口通过服务网络的8080端口对外暴露出去
+>
+> 这个暴露出去的IP只对集群内有效
+
+
+
+### 查看集群中的服务
+
+通过以下命令可以查看集群中的service：
+
+```
+# 可以使用 -n 参数指定名称空间
+kubectl get service -A
+```
+
+```
+[root@k8s-01 ~]# kubectl get service -A
+NAMESPACE              NAME                        TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                  AGE
+default                kubernetes                  ClusterIP   10.96.0.1       <none>        443/TCP                  26m
+default                my-app                      ClusterIP   10.96.229.119   <none>        8000/TCP                 15m
+kube-system            kube-dns                    ClusterIP   10.96.0.10      <none>        53/UDP,53/TCP,9153/TCP   26m
+kubernetes-dashboard   dashboard-metrics-scraper   ClusterIP   10.96.20.202    <none>        8000/TCP                 23m
+kubernetes-dashboard   kubernetes-dashboard        NodePort    10.96.96.103    <none>        443:32129/TCP            23m
+
+```
+
+### 域名访问服务
+
+#### pod内部访问
+
+在pod内部，可以通过 `{serviceName}.{namespace}.svc:{port}`来访问一组服务。如上面的my-app服务，可以通过 `my-app.default.svc:8000`访问对应服务。但是这种方式只在pod内部有效。
+
+
+#### 公网访问
+
+如果需要将一组服务暴露在公网上，需要在前面暴露服务的命令后面添加 ` --type=NodePort`。如：
+
+```
+kubectl expose deploy my-app --port=8000 --target-port=80 --type=NodePort
+```
+
+再次查看集群service可以发现，my-app服务存在一个对8000端口的映射
+
+```
+[root@k8s-01 ~]# kubectl get service
+NAME         TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)          AGE
+kubernetes   ClusterIP   10.96.0.1      <none>        443/TCP          46m
+my-app       NodePort    10.96.14.198   <none>        8000:30678/TCP   8s
+
+```
+
+此时，可以通过集群任意节点IP:{映射的端口}来访问这一组pod服务。
+
+
 ## 常用命令
 
 ### 扩/缩容
@@ -86,8 +159,6 @@ kubectl create deployment my-app --image=nginx --replicas=3
 
 > 部署一个my-app的pod，启动三个副本，三个副本会分散在集群的机器上
 
-
-
 #### 滚动更新
 
 k8s支持对pod镜像的滚动更新。即当一个镜像要发布新版本时，如果同时有多个pod部署了这个镜像，k8s支持在一个新的pod中部署这个镜像，部署成功之后选择一个旧版本的pod下线并将流量转发到新的pod中，以此类推逐渐完成整个集群版本的更新。
@@ -117,7 +188,61 @@ my-app-6cdff855db-qrtz7   1/1     Terminating         0          81s
 
 通过上面的日志打印可以看出，当我们执行完命令之后，k8s重新拉起一个后缀为 `2rc58` 的pod，当这个pod成功运行起来之后就开始停止后缀为 `qrtz7` 的pod。这里以一个pod为例，剩余的pod会以同样的方式依次完成。
 
+#### 版本回退
 
+当一个版本上线后，如果需要回退到旧版本，k8s提供 `rollout` 命令实现版本回退。
+
+- 查看历史版本
+
+```
+kubectl rollout history deploy/my-app
+```
+
+```
+[root@k8s-01 ~]# kubectl rollout history deploy/my-app
+deployment.apps/my-app
+REVISION  CHANGE-CAUSE
+1         <none>
+3         kubectl set image deployment/my-app nginx=nginx:1.25.3 --record=true
+4         kubectl set image deployment/my-app nginx=nginx:1.25 --record=true
+5         kubectl set image deployment/my-app nginx=nginx:1.16.1 --record=true
+```
+
+> 通过返回信息可以看到，对于my-app 一共存在4个版本。
+
+- 查看某个历史版本详情
+
+```
+kubectl rollout history deploy/my-app --revision=3
+```
+
+```
+[root@k8s-01 ~]# kubectl rollout history deploy/my-app --revision=3
+deployment.apps/my-app with revision #3
+Pod Template:
+  Labels:       app=my-app
+        pod-template-hash=5f9f547645
+  Annotations:  kubernetes.io/change-cause: kubectl set image deployment/my-app nginx=nginx:1.25.3 --record=true
+  Containers:
+   nginx:
+    Image:      nginx:1.25.3
+    Port:       <none>
+    Host Port:  <none>
+    Environment:        <none>
+    Mounts:     <none>
+  Volumes:      <none>
+
+```
+
+- 回退到指定版本
+
+```
+kubectl rollout undo deploy/my-app --to-revision=3
+```
+
+> 这里会回退到版本号为3的版本
+
+如果不添加 `--to-revision` 参数，则会回退到上一个版本。
 
 ### 命名空间
 
