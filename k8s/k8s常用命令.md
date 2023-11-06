@@ -48,14 +48,11 @@ k8s自身具备自愈能力，以上面my-app为例，该deployment存在三个p
 
 在上面的案例中，mq65q的pod位于k8s-02节点上，而此时如果k8s-02节点意外失联，如网络故障等，那么k8s会在剩余的存活节点上再重新创建一个新的pod，保证集群中对应的pod个数为我们前面部署的时候设置replicas的个数。
 
-
-
 ## 服务网络
 
 ### service
 
 k8s将一组pod抽象为一个service并分配一个服务地址，通过这个服务地址可以访问到这一组pod。
-
 
 ### 暴露一组服务
 
@@ -70,8 +67,6 @@ kubectl expose deploy my-app --port=8000 --target-port=80
 > --target-port: 8000端口对应的pod内部的端口，即将pod内部的80端口通过服务网络的8080端口对外暴露出去
 >
 > 这个暴露出去的IP只对集群内有效
-
-
 
 ### 查看集群中的服务
 
@@ -99,7 +94,6 @@ kubernetes-dashboard   kubernetes-dashboard        NodePort    10.96.96.103    <
 
 在pod内部，可以通过 `{serviceName}.{namespace}.svc:{port}`来访问一组服务。如上面的my-app服务，可以通过 `my-app.default.svc:8000`访问对应服务。但是这种方式只在pod内部有效。
 
-
 #### 公网访问
 
 如果需要将一组服务暴露在公网上，需要在前面暴露服务的命令后面添加 ` --type=NodePort`。如：
@@ -120,6 +114,224 @@ my-app       NodePort    10.96.14.198   <none>        8000:30678/TCP   8s
 
 此时，可以通过集群任意节点IP:{映射的端口}来访问这一组pod服务。
 
+## Ingress
+
+ingress 相当于整个k8s集群的入口，可以理解为一个nginx服务器。所有对于集群的访问请求都会进入到ingress中，然后再由ingress解析请求地址后将请求分配到对应的service网络中。[Ingress配置文档](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/)
+
+### 安装Ingress
+
+- 下载配置文件
+
+```
+wget https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v0.47.0/deploy/static/provider/baremetal/deploy.yaml
+```
+
+这里如果无法访问链接，可以使用这个[./config/deploy.yaml](./config/deploy.yaml "ingress 配置文件")
+
+- 修改镜像
+
+```
+vim deploy.yaml
+
+#将image的值改为如下值：
+registry.cn-hangzhou.aliyuncs.com/lfy_k8s_images/ingress-nginx-controller:v0.46.0
+```
+
+- 安装
+
+```
+kubectl apply -f deploy.yaml
+```
+
+- 检查安装结果
+
+```
+kubectl get pod,svc -n ingress-nginx
+```
+
+此时，再查看集群service，可以发现新建了两个以 `ingress-nginx-controller`开头的service，type分别为 `NodePort`和 `ClusterIP` 。并且NodePort服务暴露了80和443端口。
+
+```
+[root@k8s-01 ~]# kubectl get service -n ingress-nginx
+NAME                                 TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)                      AGE
+ingress-nginx-controller             NodePort    10.96.89.36   <none>        80:30519/TCP,443:32217/TCP   11m
+ingress-nginx-controller-admission   ClusterIP   10.96.51.87   <none>        443/TCP                      11m
+
+```
+
+此时在浏览器访问http://{NodeIP}:{port}，会打开一个nginx的404页面。
+
+### 测试环境搭建
+
+- 搭建测试服务
+
+在k8s集群环境执行  [./config/ingress-test.yaml](./config/ingress-test.yaml "ingress测试环境配置文件") 文件，搭建ingress测试环境。执行完成后会创建 `hello-server`
+
+和 `nginx-demo` 两个service。
+
+```
+[root@k8s-01 ~]# kubectl get svc
+NAME           TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)          AGE
+hello-server   ClusterIP   10.96.59.205   <none>        8000/TCP         8s
+kubernetes     ClusterIP   10.96.0.1      <none>        443/TCP          3h21m
+my-app         NodePort    10.96.14.198   <none>        8000:30678/TCP   154m
+nginx-demo     ClusterIP   10.96.27.177   <none>        8000/TCP         8s
+
+```
+
+- 配置域名访问规则
+
+```
+apiVersion: networking.k8s.io/v1
+kind: Ingress  
+metadata:
+  name: ingress-host-bar
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: "hello.atguigu.com"
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: hello-server
+            port:
+              number: 8000
+  - host: "demo.atguigu.com"
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: nginx-demo  ## java，比如使用路径重写，去掉前缀nginx
+            port:
+              number: 8000
+```
+
+将上面的内容保存到yaml文件中，并在k8s集群中应用该配置文件。
+
+执行完成后，查看ingress规则，可以看到新增一条数据：
+
+```
+[root@k8s-01 ~]# kubectl get ingress
+NAME               CLASS   HOSTS                                ADDRESS   PORTS   AGE
+ingress-host-bar   nginx   hello.atguigu.com,demo.atguigu.com             80      10s
+
+```
+
+- 配置本地域名映射
+
+修改本机hosts文件，添加 集群任意节点IP 到 hello.atguigu.com,demo.atguigu.com 的映射。
+
+
+- 查看ingress服务端口
+
+```
+[root@k8s-01 ~]# kubectl get service -n ingress-nginx
+NAME                                 TYPE        CLUSTER-IP    EXTERNAL-IP   PORT(S)                      AGE
+ingress-nginx-controller             NodePort    10.96.89.36   <none>        80:30519/TCP,443:32217/TCP   51m
+ingress-nginx-controller-admission   ClusterIP   10.96.51.87   <none>        443/TCP                      51m
+
+```
+
+- 测试
+
+在浏览器访问 `http://hello.atguigu.com:30519/`，返回hello-world，访问 `http://demo.atguigu.com:30519/`返回nginx的欢迎页面。
+
+
+- 修改ingress规则路径测试
+
+修改inress配置规则，将上面的 host为demo 的规则下的 `path: "/"` 修改为 `path: "/nginx"` 再次访问
+
+```
+[root@k8s-01 ~]# kubectl get ingress
+NAME               CLASS   HOSTS                                ADDRESS         PORTS   AGE
+ingress-host-bar   nginx   hello.atguigu.com,demo.atguigu.com   172.22.74.136   80      32m
+
+```
+
+```
+kubectl edit ingress ingress-host-bar
+
+# 进入编辑模式后修改上面的内容，保存后退出
+```
+
+此时，再访问 `http://demo.atguigu.com:30519/`会返回404页面，但是这里的页面上显示的nginx后面没有版本号，因为这个页面是ingess返回的，当我们的访问地址没有加任何后缀时，ingress无法将该路径与任何规则匹配，因此返回404。
+
+再次访问 `http://demo.atguigu.com:30519/nginx` 此时依然返回nginx的404页面，但是这个页面下的nginx有版本号，这个页面为pod内部的nginx返回的。此时在ingress层能匹配到/nginx的请求，因此该请求会转发到 `demo.atguigu.com` 服务上，但是在该服务的pod中没有配置任何以 `/nginx` 开头的访问路径，因此服务内部pod返回404.
+
+**即这里的规则会把路径中配置的规则往下送到后面的pod中。**
+
+
+### 路径重写
+
+使用下面的配置文件覆盖前面上传的ingress-rule.yaml，应用后生效。
+
+```
+apiVersion: networking.k8s.io/v1
+kind: Ingress  
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+  name: ingress-host-bar
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: "hello.atguigu.com"
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: hello-server
+            port:
+              number: 8000
+  - host: "demo.atguigu.com"
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/nginx(/|$)(.*)"  # 把请求会转给下面的服务，下面的服务一定要能处理这个路径，不能处理就是404
+        backend:
+          service:
+            name: nginx-demo  ## java，比如使用路径重写，去掉前缀nginx
+            port:
+              number: 8000
+```
+
+此时，再次访问前面的 `http://demo.atguigu.com:30519/nginx` 页面再次跳转到nginx的欢迎页。
+
+
+### 流量限制
+
+复制下面的内容，在主节点新建一个ingress-rule-flow.yaml并粘贴保存。应用文件使规则生效。
+
+```
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-limit-rate
+  annotations:
+    nginx.ingress.kubernetes.io/limit-rps: "1"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: "flow.atguigu.com"
+    http:
+      paths:
+      - pathType: Exact
+        path: "/"
+        backend:
+          service:
+            name: nginx-demo
+            port:
+              number: 8000
+```
+
+此时，如果请求流量过大，会触发限流机制返回503页面。
 
 ## 常用命令
 
