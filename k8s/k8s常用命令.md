@@ -226,7 +226,6 @@ ingress-host-bar   nginx   hello.atguigu.com,demo.atguigu.com             80    
 
 修改本机hosts文件，添加 集群任意节点IP 到 hello.atguigu.com,demo.atguigu.com 的映射。
 
-
 - 查看ingress服务端口
 
 ```
@@ -240,7 +239,6 @@ ingress-nginx-controller-admission   ClusterIP   10.96.51.87   <none>        443
 - 测试
 
 在浏览器访问 `http://hello.atguigu.com:30519/`，返回hello-world，访问 `http://demo.atguigu.com:30519/`返回nginx的欢迎页面。
-
 
 - 修改ingress规则路径测试
 
@@ -264,7 +262,6 @@ kubectl edit ingress ingress-host-bar
 再次访问 `http://demo.atguigu.com:30519/nginx` 此时依然返回nginx的404页面，但是这个页面下的nginx有版本号，这个页面为pod内部的nginx返回的。此时在ingress层能匹配到/nginx的请求，因此该请求会转发到 `demo.atguigu.com` 服务上，但是在该服务的pod中没有配置任何以 `/nginx` 开头的访问路径，因此服务内部pod返回404.
 
 **即这里的规则会把路径中配置的规则往下送到后面的pod中。**
-
 
 ### 路径重写
 
@@ -304,7 +301,6 @@ spec:
 
 此时，再次访问前面的 `http://demo.atguigu.com:30519/nginx` 页面再次跳转到nginx的欢迎页。
 
-
 ### 流量限制
 
 复制下面的内容，在主节点新建一个ingress-rule-flow.yaml并粘贴保存。应用文件使规则生效。
@@ -332,6 +328,215 @@ spec:
 ```
 
 此时，如果请求流量过大，会触发限流机制返回503页面。
+
+## 存储抽象
+
+### 搭建NFS环境
+
+- 所有节点执行
+
+```
+#所有机器安装
+yum install -y nfs-utils
+```
+
+- 主节点执行
+
+```
+#nfs主节点
+echo "/nfs/data/ *(insecure,rw,sync,no_root_squash)" > /etc/exports
+
+mkdir -p /nfs/data
+systemctl enable rpcbind --now
+systemctl enable nfs-server --now
+#配置生效
+exportfs -r
+```
+
+- 从节点执行（IP改为主节点IP）
+
+```
+showmount -e 172.31.0.4
+
+#执行以下命令挂载 nfs 服务器上的共享目录到本机路径 /root/nfsmount
+mkdir -p /nfs/data
+
+mount -t nfs 172.31.0.4:/nfs/data /nfs/data
+# 写入一个测试文件
+echo "hello nfs server" > /nfs/data/test.txt
+```
+
+
+
+### 原生方式挂载
+
+将以下内容保存到deploy-nginx-fv.yaml中：
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: nginx-pv-demo
+  name: nginx-pv-demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx-pv-demo
+  template:
+    metadata:
+      labels:
+        app: nginx-pv-demo
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+        volumeMounts:
+        - name: html
+          mountPath: /usr/share/nginx/html
+      volumes:
+        - name: html
+          nfs:
+            server: 172.22.74.137
+            path: /nfs/data/nginx-pv
+```
+
+这里会启动一个nginx镜像，将pod内部 `/usr/share/nginx/html` 挂载到nfs服务器上 `/nfs/data/nginx-pv` 上。这里需要确保 `/nfs/data/nginx-pv` 目录存在。
+
+使用 `kubectl apply -f deploy-nginx-fv.yaml` 启动pod，等待两个pod状态为running。再往 `/nfs/data/nginx-pv` 目录中新建任意一个文件，此时进入任意一个创建的pod中，进入 `/usr/share/nginx/html`目录下，会发现目录下同步了前面新建的文件。
+
+
+### PVC挂载
+
+#### 创建pv
+
+将以下内容保存在deploy-pv.yaml中
+
+```
+apiVersion: v1
+# 指定类型
+kind: PersistentVolume
+metadata:
+  # 名称
+  name: pv01-10m
+spec:
+  # 容量为10M
+  capacity:
+    storage: 10M
+  # 访问模式为多节点读写 
+  accessModes:
+    - ReadWriteMany
+  # 存储名称为nfs
+  storageClassName: nfs
+  # nfs配置信息
+  nfs:
+    path: /nfs/data/01
+    server: 172.22.74.137
+
+# 分隔多个文件
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv02-1gi
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs
+  nfs:
+    path: /nfs/data/02
+    server: 172.22.74.137
+
+# 分隔多个文件
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv03-3gi
+spec:
+  capacity:
+    storage: 3Gi
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs
+  nfs:
+    path: /nfs/data/03
+    server: 172.22.74.137
+```
+
+执行 kubectl apply -f deploy-pv.yaml 创建3个pv卷。执行完成之后使用 `kubectl get pv` 查看创建的三个pv。
+
+#### 创建pvc
+
+执行以下yaml配置，创建一个pvc。前面我们创建的一个10M，一个1G，一个3G，因此这个pvc跟跟1g的绑定最合适。
+
+```
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: nginx-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 200Mi
+  storageClassName: nfs
+```
+
+此时，执行 `kubectl get pvc` 可以看到新建了一个pvc卷，并且和前面创建的pv02-1gi绑定。通过 `kubectl get pv` 可以看到，pv02-1gi的状态变为Bound，且绑定的为前面创建的nginx-pvc.
+
+```
+[root@k8s-01 ~]# kubectl get pvc
+NAME        STATUS   VOLUME     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+nginx-pvc   Bound    pv02-1gi   1Gi        RWX            nfs            11s
+
+
+[root@k8s-01 ~]# kubectl get pv
+NAME       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM               STORAGECLASS   REASON   AGE
+pv01-10m   10M        RWX            Retain           Available                       nfs                     5m37s
+pv02-1gi   1Gi        RWX            Retain           Bound       default/nginx-pvc   nfs                     5m37s
+pv03-3gi   3Gi        RWX            Retain           Available                       nfs                     5m37s
+
+```
+
+#### 绑定pvc
+
+执行以下yaml绑定前面创建的pvc。
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: nginx-deploy-pvc
+  name: nginx-deploy-pvc
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx-deploy-pvc
+  template:
+    metadata:
+      labels:
+        app: nginx-deploy-pvc
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+        volumeMounts:
+        - name: html
+          mountPath: /usr/share/nginx/html
+      volumes:
+        - name: html
+          persistentVolumeClaim:
+            claimName: nginx-pvc
+```
+
+
 
 ## 常用命令
 
