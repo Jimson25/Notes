@@ -366,8 +366,6 @@ mount -t nfs 172.31.0.4:/nfs/data /nfs/data
 echo "hello nfs server" > /nfs/data/test.txt
 ```
 
-
-
 ### 原生方式挂载
 
 将以下内容保存到deploy-nginx-fv.yaml中：
@@ -405,7 +403,6 @@ spec:
 这里会启动一个nginx镜像，将pod内部 `/usr/share/nginx/html` 挂载到nfs服务器上 `/nfs/data/nginx-pv` 上。这里需要确保 `/nfs/data/nginx-pv` 目录存在。
 
 使用 `kubectl apply -f deploy-nginx-fv.yaml` 启动pod，等待两个pod状态为running。再往 `/nfs/data/nginx-pv` 目录中新建任意一个文件，此时进入任意一个创建的pod中，进入 `/usr/share/nginx/html`目录下，会发现目录下同步了前面新建的文件。
-
 
 ### PVC挂载
 
@@ -536,12 +533,7 @@ spec:
             claimName: nginx-pvc
 ```
 
-
 ### ConfigMap
-
-
-
-
 
 ## 常用命令
 
@@ -708,6 +700,21 @@ kebuctl get nodes
 ```
 
 ### 操作pod
+
+#### 复制pod文件
+
+- 将pod内部文件复制到宿主机
+
+```
+kubectl cp -n config my-pod:webapps/ROOT/WEB-INF/classes/com/starter/web/ServletProxy.class ./ServletProxy.class
+```
+
+- 将pod内部的目录复制到宿主机
+
+```
+kubectl cp my-pod:/usr/local/tomcat/webapps/ROOT/WEB-INF/classes  ./classes -n config
+```
+
 
 #### 进入pod内部
 
