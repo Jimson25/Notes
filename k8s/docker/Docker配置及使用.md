@@ -122,7 +122,6 @@ sudo systemctl restart docker
   ......
   ```
 
-
 #### 三、Docker容器基本使用
 
 ##### 1. 拉取镜像
@@ -279,13 +278,20 @@ NAMES: 自动分配的容器名称。
   NAME                                        DESCRIPTION                                     STARS     OFFICIAL   AUTOMATED
   rabbitmq                                    RabbitMQ is an open source multi-protocol me…   3546      [OK]   
   bitnami/rabbitmq                            Bitnami Docker Image for RabbitMQ               57                   [OK]
-  tutum/rabbitmq                              Base docker image to run a RabbitMQ server      22     
+  tutum/rabbitmq                              Base docker image to run a RabbitMQ server      22   
   ......
   ```
 
 ##### 3. 删除镜像
 
 - 使用 `docker rmi <repository:tag> `删除指定镜像
+
+##### 4.导出镜像
+
+```
+docker save -o <路径/镜像名.tar> <镜像名>:<标签>
+```
+
 
 #### 五、Docker启动RabbitMQ
 
