@@ -136,7 +136,7 @@ sudo systemctl restart docker
   - __-i：__ 允许用户对容器内的标准输入进行交互（可以敲命令）
   - **-t：** 在新启动的容器内指定一个终端
   - **/bin/bash**：放在镜像名后的是命令，这里我们希望有个交互式 Shell，因此用的是 /bin/bash
-- 运行 `docker run --name=mynginx -d --restart=always -p 88:80 nginx` 启动 nginx
+- 运行 `docker run --name=mynginx -d --restart=always -p 80:80 nginx` 启动 nginx
   - --name: 指定容器名称
   - -d 后台运行
   - --restart=always 无论容器的退出状态码是什么，Docker都会自动重启容器。
