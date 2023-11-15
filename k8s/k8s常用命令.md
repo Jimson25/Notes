@@ -535,6 +535,54 @@ spec:
 
 ### ConfigMap
 
+
+#### 创建redis pod
+
+- 配置文件
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: redis
+spec:
+  containers:
+  # pod名称
+  - name: redis
+    # 所使用的镜像 
+    image: redis
+    # 启动命令
+    command:
+      - redis-server
+      - "/redis-master/redis.conf"  #指的是redis容器内部的位置
+    ports:
+    - containerPort: 6379
+    # 卷挂载
+    volumeMounts:
+    # 将 /data目录挂载到data上
+    - mountPath: /data
+      name: data
+      # 将/redis-master挂载到config上
+    - mountPath: /redis-master
+      name: config
+  # 配置挂载卷 
+  volumes:
+    # 创建一个名为data的挂载卷
+    - name: data
+      emptyDir: {}
+    # 创建一个名为config的挂载卷，挂载点为configMap
+    - name: config
+      configMap:
+        # 
+        name: redis-conf
+        items:
+        - key: redis.conf
+          path: redis.conf
+
+```
+
+
+
 ## 常用命令
 
 ### 扩/缩容
@@ -714,7 +762,6 @@ kubectl cp -n config my-pod:webapps/ROOT/WEB-INF/classes/com/starter/web/Servlet
 ```
 kubectl cp my-pod:/usr/local/tomcat/webapps/ROOT/WEB-INF/classes  ./classes -n config
 ```
-
 
 #### 进入pod内部
 
