@@ -37,6 +37,18 @@ http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
 sudo yum -y update
 ```
 
+这里如果执行返回下面错误信息：
+
+> 问题: package podman-3:4.6.1-5.module_el8+712+4cd1bd69.x86_64 requires runc >= 1.0.0-57, but none of the providers can be installed
+> ···
+
+是因为主句存在 `runc` 运行环境，如果要安装docker，需要卸载 `runc` 及其依赖项。执行以下命令卸载即可：
+
+```
+sudo yum remove runc
+```
+
+
 - 卸载旧版本
 
 ```
@@ -291,7 +303,6 @@ NAMES: 自动分配的容器名称。
 ```
 docker save -o <路径/镜像名.tar> <镜像名>:<标签>
 ```
-
 
 #### 五、Docker启动RabbitMQ
 

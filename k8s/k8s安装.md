@@ -115,8 +115,6 @@ NETWORK=192.168.86.0     #网卡对应的网络地址
 ```
 
 - 执行到这里之后建议直接执行重启网络，测试是否能够正常访问网络，重启服务器检查IP是否变化，如果一切正常，则不用修改网关配置，至此静态IP配置成功。
- 
-
 - 修改网关配置
 
 ```
@@ -432,3 +430,37 @@ kubectl -n kubernetes-dashboard get secret $(kubectl -n kubernetes-dashboard get
 ```
 
 将生成的token输入到页面输入框即可登录。
+
+
+## 六、命令自动补全
+
+### linux服务器中自动补全
+
+```shell
+#!/bin/bash
+
+# 安装bash-completion包
+yum install -y bash-completion
+
+# 确保bash-completion包已经被正确地在你的shell中启用
+echo "source /usr/share/bash-completion/bash_completion" >> ~/.bashrc
+
+# 启用kubectl的自动补全功能
+echo "source <(kubectl completion bash)" >> ~/.bashrc
+
+# 重新加载.bashrc文件以应用更改
+source ~/.bashrc
+
+echo "kubectl auto-completion enabled."
+
+```
+
+将以上脚本保存到服务器并执行即可。在使用自动补全的命令前面应先指定命名空间。
+
+### Windows Powershell 自动补全
+
+```powershell
+kubectl completion powershell | Out-String | Invoke-Expression
+kubectl completion powershell >> $PROFILE
+
+```
