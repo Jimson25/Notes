@@ -178,8 +178,6 @@ sudo systemctl enable --now kubelet
 
 ## 三、引导启动集群
 
-**（只在一台要设置为主节点网关的节点上执行）**
-
 ### 提前下载所需文件
 
 ```bash
@@ -208,6 +206,9 @@ chmod +x ./images.sh && ./images.sh
 # 以实际主节点IP为准
 echo "192.168.86.138  cluster-endpoint" >> /etc/hosts
 ```
+
+
+**（只在一台要设置为主节点网关的节点上执行）**
 
 - 主节点初始化(**这里要保证所有节点的网络地址不重叠**)
 
