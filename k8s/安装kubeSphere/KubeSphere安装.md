@@ -475,7 +475,6 @@ kubectl apply -f https://github.com/kubesphere/ks-installer/releases/download/v3
 
 如果以上安装失败，可以尝试将文件下载到本地再执行安装
 
-
 #### 下载文件到本地
 
 ```
@@ -488,5 +487,33 @@ wget https://github.com/kubesphere/ks-installer/releases/download/v3.4.0/cluster
 
 - 修改spec.etcd.monitoring为true，开启etcd监控
 - 修改spec.common.redis.enabled为true，开启redis功能
-- 根据实际情况决定是否修改spec.common.redis.enableHA为true，开启redis高可用。开启后可以提高系统的稳定性和可靠性，但是会消耗更多的系统资源用来维护redis实例。
--
+- 根据实际情况决定是否修改spec.common.redis.enableHA为true，开启redis高可用。
+
+  > 开启后可以提高系统的稳定性和可靠性，但是会消耗更多的系统资源用来维护redis实例。
+  >
+- 修改spec.common.openldap.enabled为true，开启轻量级目录协议。
+- 修改spec.alerting.enabled为true，开启系统告警功能。
+- 修改spec.auditing.enabled为true，开启审计功能。
+- 修改spec.devops.enabled为true，开启devops功能。
+- 修改spec.events.enabled为true，开启集群事件功能。
+- 修改spec.logging.enabled为true，开启日志功能。
+- spec.metrics_server.enabled不建议修改。
+
+  > 这里如果设置为true，kubesphere会从官方下载镜像，可能会导致下载失败。前面在前置环境准备中已经安装了metrice。
+  >
+- 修改spec.network.networkpolicy.enabled为true，开启网络策略。
+
+  > 网络策略允许在同一集群内进行网络隔离，这意味着可以在某些实例（Pod）之间设置防火墙。
+  >
+
+  > 确保集群使用的CNI网络插件支持NetworkPolicy。有许多CNI网络插件支持NetworkPolicy，包括Calico、Cilium、Kube路由器、Romana和Weave Net。
+  >
+- 修改spec.network.ippool.type为calico。
+
+  > 使用Pod IP池来管理Pod网络地址空间。可以从Pod IP池中为要创建的Pod分配IP地址。
+  >
+
+  > 如果calico用作CNI插件，请在此字段中指定“calico”。“none”表示Pod IP池已禁用。
+  >
+- 修改spec.openpitrix.store.enabled为true，开启KubeSphere的应用商店功能。
+- 修改spec.servicemesh.enabled为true，开启服务治理功能。
