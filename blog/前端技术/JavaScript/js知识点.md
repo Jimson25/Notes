@@ -3,9 +3,7 @@
 #### 一、变量作用域问题
 
 - 变量在函数内部声明，其作用域为函数内，该变量称为局部变量。
-
 - 在函数为声明的变量为全局变量，其作用域具有全局作用域，即在页面任意位置均可访问。
-
 - 如果变量在函数中没有声明，那么该变量为全局变量，但是如果没有调用定义该变量的函数就直接使用该变量，会出现undefined。
 
   ```js
@@ -16,8 +14,6 @@
   fun1();
   console.log(a);
   ```
-
-  
 
 #### 二、声明提升问题
 
@@ -30,7 +26,7 @@
   */
   a = 1;
   console.log(`a = ${a}`);
-  console.log(`delete a`,delete a);	
+  console.log(`delete a`,delete a);
   var a;
   ```
 
@@ -43,7 +39,6 @@
   console.log(`a = ${a}`);
   console.log(`delete a`,delete a);
   ```
-
 - 在js中，变量的初始化不会提升。
 
   ```js
@@ -55,13 +50,12 @@
 
 #### 三、严格模式
 
-- js中的严格模式表示程序将在严格模式下运行。使用`use strict`设置严格模式.
-
+- js中的严格模式表示程序将在严格模式下运行。使用 `use strict`设置严格模式.
 - 在严格模式下不允许使用未声明的变量。
 
   ```js
   // ReferenceError: a is not defined
-  
+
   "use strict"
   a = 10;
   console.log(`a = ${a}`);
@@ -69,25 +63,23 @@
 
   ```js
   // ReferenceError: y is not defined
-  
+
   "use strict"
   function fun1() {
       y = 100;
   }
   fun1();
   ```
-
 - 在严格模式下不允许删除对象或变量
 
   ```js
   // SyntaxError: Delete of an unqualified identifier in strict mode.
-  
+
   "use strict"
   let a = 100;
-  
+
   delete a;
   ```
-
 - [其他相关限制](https://www.runoob.com/js/js-strict.html)
 
 #### 四、this指向问题
@@ -141,12 +133,9 @@
 - 在函数中调用this时指向的是全局属性。如果我们需要使用函数内部定义的变量，只需要使用变量名即可。
 - 在事件中，this指向事件的html元素。
 
-
-
 #### 五、使用let声明变量
 
 - 在js中，使用var声明的变量没有块级作用域这一概念，即使用var在代码块中声明的变量在后面都是可以访问的。
-
 - ES6 可以使用 let 关键字来实现块级作用域。let 声明的变量只在 let 命令所在的代码块 **{}** 内有效，在 **{}** 之外不能访问。
 
   ```js
@@ -156,7 +145,6 @@
   }
   // 在这里就无法再访问变量a了
   ```
-
 - 使用var会重新定义变量，使用let可以避免这个问题。
 
   ```js
@@ -165,7 +153,7 @@
       var a = 100;
   }
   console.log(a);	//这里a的值为100
-  
+
   var b = 1;	//let也可以
   {
      let b = 100; 
@@ -173,29 +161,24 @@
   }
   console.log(b);	// 这里输出的b为1，在代码块中做出的修改不会影响外面b的值。
   ```
-
 - js中的循环作用域。从下面的代码中可以看出，在循环中使用let不会覆盖外面的同名变量值，而var会覆盖。
 
   ```js
   var i = 10;
   for (var i = 0; i < 100; i++) {}
   console.log(i); 	// 这里输出的值为100
-  
-  
+
+
   let x = 10;
   for (let x = 0; x < 100; x++) {}
   console.log(x)		// 这里输出的是10
   ```
-
-  
 
 #### 六、使用const声明变量
 
 - const用于声明常量，用法等同于其他语言。相当于声明一个属性指向一块内存地址，这一关系不可变，但是指向的地址具体存储什么元素是可以变化的。
 - 在同一作用域下不能存在同名的const变量。在不同的作用域中可以存在同名的const属性。
 - const声明的属性必须在生命的时候初始化，并且在初始化之后其值不能被修改。
-
-
 
 #### 七、JSON转换
 
@@ -210,7 +193,6 @@
   var obj = JSON.parse(text);
   console.log(obj);
   ```
-
 - JavaScript对象转JSON
 
   ```js
@@ -218,8 +200,6 @@
   let str = JSON.stringify(obj);
   console.log(str);
   ```
-
-  
 
 #### 八、void关键字
 
@@ -229,32 +209,31 @@
   let a = void(100);
   console.log(a);	//undefined
   ```
-
   ```html
   <a href="javascript:void(0)">单击此处什么也不会发生</a>
   ```
+- `href="#"`与 `href="javascript:void(0)"`的区别
 
-- `href="#"`与`href="javascript:void(0)"`的区别
-
-  > **#** 包含了一个位置信息，默认的锚是**#top** 也就是网页的上端。
+  > **#** 包含了一个位置信息，默认的锚是 **#top** 也就是网页的上端。
   >
   > 而javascript:void(0), 仅仅表示一个死链接。
   >
   > 在页面很长的时候会使用 **#** 来定位页面的具体位置，格式为：**# + id**。
   >
   > 如果你要定义一个死链接请使用 javascript:void(0) 。
+  >
 
   ```html
   <!DOCTYPE html>
   <html lang="zh">
-  
+
   <head>
       <meta charset="UTF-8">
       <meta http-equiv="X-UA-Compatible" content="IE=edge">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Document</title>
   </head>
-  
+
   <body>
       <a href="javascript:void(0);">点我没有反应的!</a>
       <a href="#pos">点我定位到指定位置!</a>
@@ -264,8 +243,6 @@
       <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
       <p id="pos">尾部定位点</p>
   </body>
-  
+
   </html>
   ```
-
-  
