@@ -48,7 +48,6 @@ sudo yum -y update
 sudo yum remove runc
 ```
 
-
 - 卸载旧版本
 
 ```
@@ -75,6 +74,13 @@ sudo yum install -y yum-utils device-mapper-persistent-data lvm2
 sudo yum list docker-ce --showduplicates | sort -r
 ```
 
+> 这里执行后返回的数据如下。其中，`3 `是软件包的版本，`25.0.4`是docker的版本，`-1.el8`提供了关于发布和 EL7（Enterprise Linux 7）的信息。
+
+```
+docker-ce.x86_64                3:25.0.4-1.el8                  docker-ce-stable
+docker-ce.x86_64                3:25.0.3-1.el8                  docker-ce-stable
+```
+
 - 安装docker
 
 ```
@@ -83,6 +89,7 @@ sudo yum install -y docker-ce docker-ce-cli containerd.io
 
 
 # 指定安装版本
+# 这里的版本号可以从上面命令中获取，containerd.io的版本号可以不指定，yum 将安装与 Docker CE 版本兼容的默认版本。
 sudo yum install -y docker-ce-20.10.7 docker-ce-cli-20.10.7  containerd.io-1.4.6
 ```
 
