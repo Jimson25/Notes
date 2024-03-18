@@ -92,7 +92,9 @@ sudo yum install -y docker-ce docker-ce-cli containerd.io
 
 # 指定安装版本
 # 这里的版本号可以从上面命令中获取，containerd.io的版本号可以不指定，yum 将安装与 Docker CE 版本兼容的默认版本。
-sudo yum install -y docker-ce-20.10.7 docker-ce-cli-20.10.7  containerd.io-1.4.6
+# --allowerasing 参数用于告诉包管理器，如果安装 Docker 需要移除其他软件包，那么允许包管理器自动移除这些软件包，以满足 Docker 的安装要求。
+# 在安装时可以先不添加这个参数，如果执行命令后报错，再按照提示信息处理。
+sudo yum install -y docker-ce-20.10.7 docker-ce-cli-20.10.7  containerd.io --allowerasing
 ```
 
 - 启动docker
