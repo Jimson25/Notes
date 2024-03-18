@@ -31,6 +31,8 @@ http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
 
 ```
 
+> 若提示 ` yum-config-manager：找不到命令` ，则执行 `yum install -y yum-utils` 
+
 - 更新yum包(测试环境)
 
 ```
