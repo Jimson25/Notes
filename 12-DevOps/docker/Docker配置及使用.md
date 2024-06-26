@@ -31,7 +31,7 @@ http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
 
 ```
 
-> 若提示 ` yum-config-manager：找不到命令` ，则执行 `yum install -y yum-utils` 
+> 若提示 ` yum-config-manager：找不到命令` ，则执行 `yum install -y yum-utils`
 
 - 更新yum包(测试环境)
 
@@ -314,6 +314,13 @@ NAMES: 自动分配的容器名称。
 ```
 docker save -o <路径/镜像名.tar> <镜像名>:<标签>
 ```
+
+##### 5. 导入镜像
+
+```
+docker load -i <保存的文件名>.tar
+```
+
 
 #### 五、Docker启动RabbitMQ
 
